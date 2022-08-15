@@ -111,7 +111,7 @@ disp(['---> finished quantifying similarity in ', num2str(tSimEnd), ' seconds'] 
 
 %% Synthesize controller
 disp('start computing robust controller')
-N = 60;     % time horizon
+N = 150;     % time horizon
 
 [satProp,pol] = SynthesizeRobustController(sysAbs, DFA, rel, N, true);
 
