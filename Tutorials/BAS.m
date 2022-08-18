@@ -247,8 +247,8 @@ disp(['delta = ', num2str(rel.delta), ', epsilon = ', num2str(rel.epsilon) ])
 toc
 disp('---> finished computing simulation relation')
 
-% rel.NonDetLabels  = NonDeterministicLabelling(sysAbs.outputs, sysLTIr.regions, rel);
-rel.NonDetLabels  = NonDeterministicLabelling(sysAbs.outputs, sysLTIr.regions, rel, 'Efficient', sysAbs);
+rel.NonDetLabels  = NonDeterministicLabelling(sysAbs.outputs, sysLTIr.regions, rel);
+%rel.NonDetLabels  = NonDeterministicLabelling(sysAbs.outputs, sysLTIr.regions, rel, 'Efficient', sysAbs);
 
 
 %% Synthesize controller
