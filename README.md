@@ -7,6 +7,8 @@ See the LICENSE file for the license terms of this toolbox.
 
 See the folder doc for full documentation and a GettingStarted file. 
 
+This toolbox is created by: Birgit van Huijgevoort, Oliver Schön, Sadegh Soudjani and Sofie Haesaert.
+
 ## 1. Installation
 - Install MATLAB toolboxes Statistics and Machine Learning Toolbox and Deep Learning Toolbox
 - Install the mpt toolbox to be able to work with the Polyhedrons. Follow: https://www.mpt3.org/Main/Installation
