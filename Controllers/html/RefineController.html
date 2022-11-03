@@ -1,0 +1,672 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>RefineController</title><meta name="generator" content="MATLAB 9.12"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2022-11-02"><meta name="DC.source" content="RefineController.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><pre class="codeinput"><span class="keyword">classdef</span> RefineController
+    <span class="comment">%REFINECONTROLLER Constructs a refined controller that can be</span>
+    <span class="comment">%implemented on a continuous-state model.</span>
+    <span class="comment">%</span>
+    <span class="comment">% Objects of this class define a controller that yields a certain satisfaction</span>
+    <span class="comment">% probablity by applying a control policy to a system</span>
+    <span class="comment">%</span>
+    <span class="comment">% Copyright 2022 Birgit van Huijgevoort b.c.v.huijgevoort@tue.nl</span>
+
+    <span class="keyword">properties</span>
+        Prob <span class="comment">% satisfaction probability</span>
+        pol <span class="comment">% abstract control policy</span>
+        sysAbs <span class="comment">% abstract model</span>
+        simRel <span class="comment">% simulation relation</span>
+        int_f <span class="comment">% Interface function \in [0,1,2] ...</span>
+        <span class="comment">% 0. (default) u=uhat 1. u=uhat+K(x-xhat) 2. u = uhat + Qxr + K(x-Pxr)</span>
+        FbMatrix <span class="comment">% matrix K for interface = 1 or 2</span>
+        sys <span class="comment">% Can be either of class LinModel or NonlinModel (if MOR is 1, this is a reduced-order model)</span>
+
+        DFA <span class="comment">% Deterministic finite automaton</span>
+        regions <span class="comment">% regions labelled with atomic propositions used for the specification (and DFA)</span>
+        dim <span class="comment">% (state) dimension of the (finite-state) system</span>
+
+        MOR = 0 <span class="comment">% \in [0,1], logical value for model-order reducion (MOR), 0 for no MOR, 1 for MOR</span>
+        P <span class="comment">% the projection matrix for model-order reduction x = Pxr</span>
+        Q <span class="comment">% for MOR, Q-matrix in interface function 2</span>
+        F <span class="comment">% for MOR, this matrix gives the coupling of disturbances wr = w+F*(x-P*xr);</span>
+    <span class="keyword">end</span>
+
+    <span class="keyword">methods</span>
+
+        <span class="keyword">function</span> obj = RefineController(satProb,policy,sysAbs,simRel,sys,DFA,varargin)
+            <span class="comment">%REFINECONTROLLER Constructs a refined controller</span>
+            <span class="comment">%   Load all data as described by the properties.</span>
+            <span class="comment">%   Controller =</span>
+            <span class="comment">%   RefineController(satProb,policy,sysAbs,simRel,sys,DFA)</span>
+            <span class="comment">%   loads the controller.</span>
+            <span class="comment">%</span>
+            <span class="comment">%   use Refine_controller(satProb,pol,sysAbs,rel,sysLTIr,DFA,{int_f1,</span>
+            <span class="comment">%   int_f2}, {K1, K2}); to specify two simulation relations and interface functions</span>
+            <span class="comment">%   (when MOR is applied).</span>
+            <span class="comment">%   Here, int_f1 and K1 refine input uhat from sysAbs to input ur from</span>
+            <span class="comment">%   sysLTIr. Similarly, int_f2 and K2 refine input ur from sysLTIr to u</span>
+            <span class="comment">%   from sysLTIr.original (full-order model). Note that they always have</span>
+            <span class="comment">%   to specified to increasing order wrt behavior, that is sysAbs &lt;= sysLTIr &lt;=</span>
+            <span class="comment">%   sysLTI.</span>
+            <span class="comment">%   Example: see the BAS tutorial, instead of Controller = RefineController(satProb,pol,sysAbs,rel,sysLTIr,DFA,int_f,K);</span>
+            <span class="comment">%   we can obtain the exact same controller using the</span>
+            <span class="comment">%   following:</span>
+            <span class="comment">%   int_f1 = 1; K1 = zeros(1,2);</span>
+            <span class="comment">%   Controller = RefineController(satProb,pol,sysAbs,rel,sysLTIr,DFA,{int_f1,int_f}, {K1, K});</span>
+
+
+            obj.Prob = satProb;
+            obj.pol = policy;
+            obj.sysAbs = sysAbs;
+            obj.simRel = simRel;
+            obj.sys = sys; <span class="comment">% Can be either of class LinModel or NonlinModel</span>
+            obj.DFA = DFA;
+            obj.regions = sys.regions;
+
+            <span class="comment">% Use the (state) dimension of the abstract system if it is</span>
+            <span class="comment">% given</span>
+            <span class="keyword">if</span> ~isempty(sysAbs)
+                obj.dim = size(obj.sysAbs.states,1);
+            <span class="keyword">else</span>
+                obj.dim = 1;
+            <span class="keyword">end</span>
+
+            <span class="comment">% Load the feedback matrix for interface function u =</span>
+            <span class="comment">% uhat+K(x-xhat). If it is not given set it to zero (hence we</span>
+            <span class="comment">% have interface u = uhat).</span>
+            <span class="keyword">if</span> nargin &gt; 6
+                obj.int_f = varargin{1};
+                <span class="keyword">if</span> sys.type == <span class="string">'PWA'</span>
+                    obj.FbMatrix = {sys.Partition.Kf};
+                <span class="keyword">else</span>
+                    <span class="keyword">if</span> nargin &gt; 7
+                        obj.FbMatrix = varargin{2};
+                    <span class="keyword">else</span>
+                        udim = size(obj.sys.B,2);
+                        obj.FbMatrix = zeros(udim,obj.dim);
+                    <span class="keyword">end</span>
+                <span class="keyword">end</span>
+            <span class="keyword">else</span>
+                obj.int_f = 0;
+                udim = size(obj.sys.B,2);
+                obj.FbMatrix = zeros(udim,obj.dim);
+            <span class="keyword">end</span>
+            <span class="keyword">if</span> isempty(obj.FbMatrix)
+                udim = size(obj.sys.B,2);
+                obj.FbMatrix = zeros(udim,obj.dim);
+            <span class="keyword">end</span>
+        <span class="keyword">end</span>
+
+        <span class="comment">% Compute state evolution of actual system, that is</span>
+        <span class="comment">% determine next concrete state and corresponding optimal concrete</span>
+        <span class="comment">% input</span>
+        <span class="comment">% option 1) by looking at the maximizer in R wrt the value function.</span>
+        <span class="keyword">function</span> [xnext, qnext, u, varargout] = EvolveSys(obj, x, q, varargin)
+            <span class="comment">%EVOLVESYS performs a state evolution x(t+1) of the system</span>
+            <span class="comment">%starting at (x(t),q(t)) and following the evolution described</span>
+            <span class="comment">%by the object (see folder Models for deterministic and stochastic state evolution).</span>
+            <span class="comment">%</span>
+            <span class="comment">% Outputs</span>
+            <span class="comment">% -------</span>
+            <span class="comment">% xnext is the next state x(t+1), qnext is the next DFA state</span>
+            <span class="comment">% q(t+1), u is the applied input and varargout is used to give</span>
+            <span class="comment">% the full-order state when model-order reduction is applied.</span>
+            <span class="comment">%</span>
+            <span class="comment">% Inputs</span>
+            <span class="comment">% ------</span>
+            <span class="comment">% obj is the controller object</span>
+            <span class="comment">% x is the state at time step t</span>
+            <span class="comment">% q is the DFA state at time step t</span>
+            <span class="comment">%</span>
+            <span class="comment">% Options (varargin, varargout)</span>
+            <span class="comment">% -------</span>
+            <span class="comment">% when model-order reduction is applied (obj.MOR=1), varargin</span>
+            <span class="comment">% is used to supply the full-order state. In this case</span>
+            <span class="comment">% varargout is the next state of the full-order model.</span>
+
+            <span class="keyword">if</span> obj.MOR
+                <span class="comment">% (xfull, xfullnext) is full state, (x, xnext) is reduced state</span>
+                xfull = varargin{1};
+            <span class="keyword">end</span>
+
+            <span class="comment">% Find abstract state and input (xrhat, urhat for MOR)</span>
+            [xhat, uhat] = obj.determAbsXU(x, q);
+
+            <span class="comment">% Get initial control input</span>
+            <span class="keyword">if</span> obj.sys.type == <span class="string">'PWA'</span>
+                <span class="comment">% Determine partition number</span>
+                temp = ceil((x-(min(obj.sys.X.V)'))./((max(obj.sys.X.V)-min(obj.sys.X.V))').*(obj.sys.N(1:obj.dim)'-1)); <span class="comment">%Coordinate of the partition ([row;column] in 2D)</span>
+                sz = obj.sys.N(1:obj.sys.dim)-1;
+                M = [];
+                <span class="keyword">for</span> i = 1:size(temp,1)
+                    M = [M {temp(i,:)}];
+                <span class="keyword">end</span>
+                Pr = sub2ind(sz, M{:}); <span class="comment">% partition number</span>
+
+                <span class="comment">% Get initial control input</span>
+                u = obj.InterfaceFunction(uhat, x, xhat, Pr);
+            <span class="keyword">else</span>
+                u = obj.InterfaceFunction(uhat, x, xhat);
+            <span class="keyword">end</span>
+
+            <span class="comment">% Compute next state</span>
+            <span class="keyword">if</span> obj.MOR
+                <span class="comment">% Full-order model</span>
+                ufull = uhat + obj.Q*x + obj.FbMatrix * (xfull - obj.P*x);
+                [xfullnext, wfull] = obj.sys.original.f_stoch(xfull, ufull);
+                varargout{1} = xfullnext;
+
+                <span class="comment">% Reduced-order model</span>
+                wr = wfull + obj.F*(xfull-obj.P*x);
+                xnext = obj.sys.f_stoch(x, u, wr);
+            <span class="keyword">elseif</span> obj.sys.type == <span class="string">'PWA'</span>
+                xnext = obj.sys.f_stoch(x, u, Pr);
+            <span class="keyword">else</span>
+                xnext = obj.sys.f_stoch(x, u);
+            <span class="keyword">end</span>
+
+
+            <span class="comment">% Check if xnext in sys.X</span>
+            <span class="keyword">if</span> obj.MOR
+                <span class="keyword">if</span> ~(obj.sys.original.X.contains(xfullnext))
+                    <span class="comment">%error("xnext is outside of sys.X")</span>
+                     warning(<span class="string">"x(t+1) is outside of the state space, so I changed it to the closest state inside the state space"</span>)
+                    <span class="comment">% find closest state inside state space</span>
+                    xnext = obj.sys.X.distance(xnext).y;
+                <span class="keyword">end</span>
+            <span class="keyword">else</span>
+                <span class="keyword">if</span> ~(obj.sys.X.contains(xnext))
+                    warning(<span class="string">"x(t+1) is outside of the state space, so I changed it to the closest state inside the state space"</span>)
+                    <span class="comment">% find closest state inside state space</span>
+                    xnext = obj.sys.X.distance(xnext).y;
+                <span class="keyword">end</span>
+            <span class="keyword">end</span>
+
+            <span class="comment">% Determine output of actual system and keep track of DFA</span>
+            <span class="keyword">if</span> obj.MOR
+                ynext = obj.getSysOutput(xfullnext);
+                qnext = updateDFA(obj.DFA, obj.sys.original.regions, obj.sys.original.AP, q, ynext);
+            <span class="keyword">else</span>
+                <span class="comment">% PWA and non-reduced</span>
+                ynext = obj.getSysOutput(xnext);
+                qnext = updateDFA(obj.DFA, obj.regions, obj.sys.AP, q, ynext);
+            <span class="keyword">end</span>
+        <span class="keyword">end</span>
+
+
+        <span class="keyword">function</span> q_0 = initDFA(obj, x_0)
+            <span class="comment">%INITDFA computes the initial state of the DFA q_0 by updating it</span>
+            <span class="comment">%instantely based on the label of the initial output. The initial output is computed</span>
+            <span class="comment">% based on the initial state x_0.</span>
+
+            <span class="comment">% Initial state of DFA</span>
+            q_init = obj.DFA.S0;
+
+            <span class="comment">% Get initial system output (should be independent of u)</span>
+            y_init = obj.getSysOutput(x_0);
+
+            <span class="comment">% Update DFA state (the DFA is always updated instantly)</span>
+            <span class="keyword">if</span> obj.MOR
+                q_0 = updateDFA(obj.DFA, obj.sys.original.regions, obj.sys.original.AP, q_init, y_init);
+            <span class="keyword">else</span>
+                q_0 = updateDFA(obj.DFA, obj.regions, obj.sys.AP, q_init, y_init);
+            <span class="keyword">end</span>
+        <span class="keyword">end</span>
+
+        <span class="keyword">function</span> [xhat, uhat] = determAbsXU(obj, x, q)
+            <span class="comment">%DETERMABSXU  Determines the abstract state xhat and input uhat</span>
+            <span class="comment">% corresponding to the concrete state (x,q).</span>
+
+            <span class="comment">% Find next abstract state by looking at the maximizer in R wrt the value</span>
+            <span class="comment">% function</span>
+            indexing = 1:length(obj.sysAbs.states);
+            <span class="keyword">if</span> obj.MOR
+                inR = obj.simRel.R{2}.inR(x, obj.sysAbs.states);
+            <span class="keyword">else</span>
+                inR = obj.simRel.inR(x, obj.sysAbs.states);
+            <span class="keyword">end</span>
+            assert(sum(inR) &gt; 0, <span class="string">"No valid state in relation found."</span>)
+            indices_valid = indexing(inR);
+            <span class="keyword">if</span> size(obj.Prob,1) &gt; 1
+                [~, index_aux] = max(obj.Prob(q, inR));
+            <span class="keyword">else</span>
+                [~, index_aux] = max(obj.Prob(inR));
+            <span class="keyword">end</span>
+            j = indices_valid(index_aux); <span class="comment">% Find maximizing index of abstract state</span>
+            xhat = obj.sysAbs.states(:, j);
+
+            <span class="comment">% Get abstract input from policy</span>
+            uhat = obj.evalPol(j, q);
+        <span class="keyword">end</span>
+
+        <span class="keyword">function</span> y = getSysOutput(obj, x)
+            <span class="comment">%GETSYSOUTPUT Determines the output of the actual system based</span>
+            <span class="comment">%on the state x and the system stored in the object controller.</span>
+
+            <span class="keyword">if</span> obj.MOR
+                <span class="keyword">if</span> isa(obj.sys.original, <span class="string">'LinModel'</span>)
+                    assert(sum(obj.sys.original.D, <span class="string">'all'</span>) == 0, <span class="string">"Systems with control inputs in the output equation aren't supported."</span>)
+                    y = obj.sys.original.C * x; <span class="comment">% + obj.sys.D * u;</span>
+                <span class="keyword">elseif</span> isa(obj.sys.original, <span class="string">'NonlinModel'</span>)
+                    error(<span class="string">"To be implemented."</span>)
+                <span class="keyword">else</span>
+                    error(<span class="string">"Model type %s not supported with MOR."</span>, class(obj.sys.original))
+                <span class="keyword">end</span>
+            <span class="keyword">else</span>
+                <span class="keyword">if</span> isa(obj.sys, <span class="string">'LinModel'</span>)
+                    assert(sum(obj.sys.D, <span class="string">'all'</span>) == 0, <span class="string">"Systems with control inputs in the output equation aren't supported."</span>)
+                    y = obj.sys.C * x; <span class="comment">% + obj.sys.D * u;</span>
+                <span class="keyword">elseif</span> isa(obj.sys, <span class="string">'NonlinModel'</span>)
+                    error(<span class="string">"To be implemented."</span>)
+                <span class="keyword">elseif</span> isa(obj.sys, <span class="string">'PWAModel'</span>)
+                    y = obj.sys.C * x;
+                <span class="keyword">else</span>
+                    error(<span class="string">"Model type %s not supported."</span>, class(obj.sys))
+                <span class="keyword">end</span>
+            <span class="keyword">end</span>
+        <span class="keyword">end</span>
+
+        <span class="keyword">function</span> uhat = evalPol(obj, j, varargin)
+            <span class="comment">%EVALPOL evaluates the policy corresponding to the j-th input.</span>
+            <span class="comment">% varargin is used to supply the DFA state q.</span>
+
+            <span class="keyword">if</span> numel(size(obj.pol)) &gt; 2
+                <span class="comment">% Switch between pages according to current DFA state</span>
+                q = varargin{:};
+                uhat = obj.pol(:, j, q);
+            <span class="keyword">else</span>
+                <span class="comment">% Only initial policy</span>
+                uhat = obj.pol(:, j);
+            <span class="keyword">end</span>
+        <span class="keyword">end</span>
+
+        <span class="keyword">function</span> u = InterfaceFunction(obj, uhat, x, xhat, varargin)
+            <span class="comment">% INTERFACEFUNCTION determine the next input u based on</span>
+            <span class="comment">% interface function u = uhat + K(x-xhat).</span>
+
+            <span class="keyword">if</span> obj.MOR
+                <span class="keyword">if</span> isa(obj.FbMatrix, <span class="string">'cell'</span>)
+                    u = uhat + obj.FbMatrix{1} * (x-xhat);
+                <span class="keyword">else</span>
+                    <span class="comment">% FbMatrix not given, so no feedback-term</span>
+                    u = uhat;
+                <span class="keyword">end</span>
+            <span class="keyword">elseif</span> obj.sys.type == <span class="string">'PWA'</span>
+                Pr = varargin{1}; <span class="comment">% partition number</span>
+                FbMatrix = obj.FbMatrix{Pr};
+                u = uhat + FbMatrix*(x-xhat);
+            <span class="keyword">else</span>
+                u = uhat + obj.FbMatrix * (x-xhat);
+            <span class="keyword">end</span>
+        <span class="keyword">end</span>
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+</pre><p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2022a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+classdef RefineController
+    %REFINECONTROLLER Constructs a refined controller that can be
+    %implemented on a continuous-state model.
+    %
+    % Objects of this class define a controller that yields a certain satisfaction
+    % probablity by applying a control policy to a system
+    %
+    % Copyright 2022 Birgit van Huijgevoort b.c.v.huijgevoort@tue.nl
+
+    properties
+        Prob % satisfaction probability
+        pol % abstract control policy
+        sysAbs % abstract model
+        simRel % simulation relation
+        int_f % Interface function \in [0,1,2] ...
+        % 0. (default) u=uhat 1. u=uhat+K(x-xhat) 2. u = uhat + Qxr + K(x-Pxr)
+        FbMatrix % matrix K for interface = 1 or 2
+        sys % Can be either of class LinModel or NonlinModel (if MOR is 1, this is a reduced-order model)
+
+        DFA % Deterministic finite automaton
+        regions % regions labelled with atomic propositions used for the specification (and DFA)
+        dim % (state) dimension of the (finite-state) system
+
+        MOR = 0 % \in [0,1], logical value for model-order reducion (MOR), 0 for no MOR, 1 for MOR
+        P % the projection matrix for model-order reduction x = Pxr
+        Q % for MOR, Q-matrix in interface function 2
+        F % for MOR, this matrix gives the coupling of disturbances wr = w+F*(x-P*xr);
+    end
+
+    methods
+
+        function obj = RefineController(satProb,policy,sysAbs,simRel,sys,DFA,varargin)
+            %REFINECONTROLLER Constructs a refined controller
+            %   Load all data as described by the properties.
+            %   Controller =
+            %   RefineController(satProb,policy,sysAbs,simRel,sys,DFA)
+            %   loads the controller. 
+            %
+            %   use Refine_controller(satProb,pol,sysAbs,rel,sysLTIr,DFA,{int_f1,
+            %   int_f2}, {K1, K2}); to specify two simulation relations and interface functions
+            %   (when MOR is applied).
+            %   Here, int_f1 and K1 refine input uhat from sysAbs to input ur from
+            %   sysLTIr. Similarly, int_f2 and K2 refine input ur from sysLTIr to u
+            %   from sysLTIr.original (full-order model). Note that they always have
+            %   to specified to increasing order wrt behavior, that is sysAbs <= sysLTIr <=
+            %   sysLTI. 
+            %   Example: see the BAS tutorial, instead of Controller = RefineController(satProb,pol,sysAbs,rel,sysLTIr,DFA,int_f,K);
+            %   we can obtain the exact same controller using the
+            %   following:
+            %   int_f1 = 1; K1 = zeros(1,2);
+            %   Controller = RefineController(satProb,pol,sysAbs,rel,sysLTIr,DFA,{int_f1,int_f}, {K1, K});
+
+
+            obj.Prob = satProb;
+            obj.pol = policy;
+            obj.sysAbs = sysAbs;
+            obj.simRel = simRel;
+            obj.sys = sys; % Can be either of class LinModel or NonlinModel
+            obj.DFA = DFA;
+            obj.regions = sys.regions;
+
+            % Use the (state) dimension of the abstract system if it is
+            % given
+            if ~isempty(sysAbs)
+                obj.dim = size(obj.sysAbs.states,1);
+            else
+                obj.dim = 1;
+            end
+
+            % Load the feedback matrix for interface function u =
+            % uhat+K(x-xhat). If it is not given set it to zero (hence we
+            % have interface u = uhat).
+            if nargin > 6
+                obj.int_f = varargin{1};
+                if sys.type == 'PWA'
+                    obj.FbMatrix = {sys.Partition.Kf};
+                else
+                    if nargin > 7
+                        obj.FbMatrix = varargin{2};
+                    else
+                        udim = size(obj.sys.B,2);
+                        obj.FbMatrix = zeros(udim,obj.dim);
+                    end
+                end
+            else
+                obj.int_f = 0;
+                udim = size(obj.sys.B,2);
+                obj.FbMatrix = zeros(udim,obj.dim);
+            end
+            if isempty(obj.FbMatrix)
+                udim = size(obj.sys.B,2);
+                obj.FbMatrix = zeros(udim,obj.dim);
+            end
+        end
+
+        % Compute state evolution of actual system, that is
+        % determine next concrete state and corresponding optimal concrete
+        % input
+        % option 1) by looking at the maximizer in R wrt the value function.
+        function [xnext, qnext, u, varargout] = EvolveSys(obj, x, q, varargin)
+            %EVOLVESYS performs a state evolution x(t+1) of the system
+            %starting at (x(t),q(t)) and following the evolution described
+            %by the object (see folder Models for deterministic and stochastic state evolution). 
+            %
+            % Outputs
+            % REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH-
+            % xnext is the next state x(t+1), qnext is the next DFA state
+            % q(t+1), u is the applied input and varargout is used to give
+            % the full-order state when model-order reduction is applied. 
+            % 
+            % Inputs
+            % REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH
+            % obj is the controller object
+            % x is the state at time step t
+            % q is the DFA state at time step t
+            % 
+            % Options (varargin, varargout)
+            % REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH-
+            % when model-order reduction is applied (obj.MOR=1), varargin
+            % is used to supply the full-order state. In this case
+            % varargout is the next state of the full-order model. 
+
+            if obj.MOR
+                % (xfull, xfullnext) is full state, (x, xnext) is reduced state
+                xfull = varargin{1};
+            end
+
+            % Find abstract state and input (xrhat, urhat for MOR)
+            [xhat, uhat] = obj.determAbsXU(x, q);
+
+            % Get initial control input
+            if obj.sys.type == 'PWA'
+                % Determine partition number
+                temp = ceil((x-(min(obj.sys.X.V)'))./((max(obj.sys.X.V)-min(obj.sys.X.V))').*(obj.sys.N(1:obj.dim)'-1)); %Coordinate of the partition ([row;column] in 2D)
+                sz = obj.sys.N(1:obj.sys.dim)-1;
+                M = [];
+                for i = 1:size(temp,1)
+                    M = [M {temp(i,:)}];
+                end
+                Pr = sub2ind(sz, M{:}); % partition number
+                
+                % Get initial control input
+                u = obj.InterfaceFunction(uhat, x, xhat, Pr);
+            else
+                u = obj.InterfaceFunction(uhat, x, xhat);
+            end
+
+            % Compute next state
+            if obj.MOR
+                % Full-order model
+                ufull = uhat + obj.Q*x + obj.FbMatrix * (xfull - obj.P*x);
+                [xfullnext, wfull] = obj.sys.original.f_stoch(xfull, ufull);
+                varargout{1} = xfullnext;
+
+                % Reduced-order model
+                wr = wfull + obj.F*(xfull-obj.P*x);
+                xnext = obj.sys.f_stoch(x, u, wr);
+            elseif obj.sys.type == 'PWA'
+                xnext = obj.sys.f_stoch(x, u, Pr);
+            else
+                xnext = obj.sys.f_stoch(x, u);
+            end
+
+
+            % Check if xnext in sys.X
+            if obj.MOR
+                if ~(obj.sys.original.X.contains(xfullnext))
+                    %error("xnext is outside of sys.X")
+                     warning("x(t+1) is outside of the state space, so I changed it to the closest state inside the state space")
+                    % find closest state inside state space
+                    xnext = obj.sys.X.distance(xnext).y;
+                end
+            else
+                if ~(obj.sys.X.contains(xnext))
+                    warning("x(t+1) is outside of the state space, so I changed it to the closest state inside the state space")
+                    % find closest state inside state space
+                    xnext = obj.sys.X.distance(xnext).y;
+                end
+            end
+
+            % Determine output of actual system and keep track of DFA
+            if obj.MOR
+                ynext = obj.getSysOutput(xfullnext);
+                qnext = updateDFA(obj.DFA, obj.sys.original.regions, obj.sys.original.AP, q, ynext);
+            else
+                % PWA and non-reduced
+                ynext = obj.getSysOutput(xnext);
+                qnext = updateDFA(obj.DFA, obj.regions, obj.sys.AP, q, ynext);
+            end
+        end
+
+     
+        function q_0 = initDFA(obj, x_0)
+            %INITDFA computes the initial state of the DFA q_0 by updating it
+            %instantely based on the label of the initial output. The initial output is computed 
+            % based on the initial state x_0.
+
+            % Initial state of DFA
+            q_init = obj.DFA.S0;
+
+            % Get initial system output (should be independent of u)
+            y_init = obj.getSysOutput(x_0);
+
+            % Update DFA state (the DFA is always updated instantly)
+            if obj.MOR
+                q_0 = updateDFA(obj.DFA, obj.sys.original.regions, obj.sys.original.AP, q_init, y_init);
+            else
+                q_0 = updateDFA(obj.DFA, obj.regions, obj.sys.AP, q_init, y_init);
+            end
+        end
+
+        function [xhat, uhat] = determAbsXU(obj, x, q)
+            %DETERMABSXU  Determines the abstract state xhat and input uhat
+            % corresponding to the concrete state (x,q).
+
+            % Find next abstract state by looking at the maximizer in R wrt the value
+            % function
+            indexing = 1:length(obj.sysAbs.states);
+            if obj.MOR
+                inR = obj.simRel.R{2}.inR(x, obj.sysAbs.states);
+            else
+                inR = obj.simRel.inR(x, obj.sysAbs.states);
+            end
+            assert(sum(inR) > 0, "No valid state in relation found.")
+            indices_valid = indexing(inR);
+            if size(obj.Prob,1) > 1
+                [~, index_aux] = max(obj.Prob(q, inR));
+            else
+                [~, index_aux] = max(obj.Prob(inR));
+            end
+            j = indices_valid(index_aux); % Find maximizing index of abstract state
+            xhat = obj.sysAbs.states(:, j);
+
+            % Get abstract input from policy
+            uhat = obj.evalPol(j, q);
+        end
+
+        function y = getSysOutput(obj, x)
+            %GETSYSOUTPUT Determines the output of the actual system based
+            %on the state x and the system stored in the object controller.
+
+            if obj.MOR
+                if isa(obj.sys.original, 'LinModel')
+                    assert(sum(obj.sys.original.D, 'all') == 0, "Systems with control inputs in the output equation aren't supported.")
+                    y = obj.sys.original.C * x; % + obj.sys.D * u;
+                elseif isa(obj.sys.original, 'NonlinModel')
+                    error("To be implemented.")
+                else
+                    error("Model type %s not supported with MOR.", class(obj.sys.original))
+                end
+            else
+                if isa(obj.sys, 'LinModel')
+                    assert(sum(obj.sys.D, 'all') == 0, "Systems with control inputs in the output equation aren't supported.")
+                    y = obj.sys.C * x; % + obj.sys.D * u;
+                elseif isa(obj.sys, 'NonlinModel')
+                    error("To be implemented.")
+                elseif isa(obj.sys, 'PWAModel')
+                    y = obj.sys.C * x;
+                else
+                    error("Model type %s not supported.", class(obj.sys))
+                end
+            end
+        end
+
+        function uhat = evalPol(obj, j, varargin)
+            %EVALPOL evaluates the policy corresponding to the j-th input.
+            % varargin is used to supply the DFA state q. 
+
+            if numel(size(obj.pol)) > 2
+                % Switch between pages according to current DFA state
+                q = varargin{:};
+                uhat = obj.pol(:, j, q);
+            else
+                % Only initial policy
+                uhat = obj.pol(:, j);
+            end
+        end
+
+        function u = InterfaceFunction(obj, uhat, x, xhat, varargin)
+            % INTERFACEFUNCTION determine the next input u based on
+            % interface function u = uhat + K(x-xhat). 
+
+            if obj.MOR
+                if isa(obj.FbMatrix, 'cell')
+                    u = uhat + obj.FbMatrix{1} * (x-xhat);
+                else
+                    % FbMatrix not given, so no feedback-term
+                    u = uhat;
+                end
+            elseif obj.sys.type == 'PWA'
+                Pr = varargin{1}; % partition number
+                FbMatrix = obj.FbMatrix{Pr};
+                u = uhat + FbMatrix*(x-xhat);
+            else
+                u = uhat + obj.FbMatrix * (x-xhat);
+            end
+        end
+    end
+end
+
+##### SOURCE END #####
+--></body></html>

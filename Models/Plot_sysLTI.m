@@ -1,7 +1,7 @@
 function Plot_sysLTI(LinModel)
 %PLOT_SYSLTI Plot the important regions of the LTI system.
 %
-% Plot_sysLTI(LinModel) plots the regions of a 2D output space 
+% Plot_sysLTI(LinModel) plots the regions of a 1D or 2D output space 
 % based on LinModel.regions
 
 
@@ -51,8 +51,6 @@ elseif LinModel.dim == 1
 end
 
 title('Output space Y with labelled regions' )
-
-
 
 end
 

@@ -1,5 +1,5 @@
 classdef NonlinModel
-    %NONLINMODEL Summary of this class goes here
+    %NONLINMODEL Class of nonlinear systems with noise on the transitions.
     %   Nonlinear model with dynamics
     %   x(t+1) = f(x(t), u(t)) + Bw w(t) with w(t)\sim N(mu, \sigma)
     %         f = the deterministic function for the state update

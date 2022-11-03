@@ -1,0 +1,288 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>FSabstraction</title><meta name="generator" content="MATLAB 9.12"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2022-11-02"><meta name="DC.source" content="FSabstraction.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#2">Assumes rectangular grid cells</a></li></ul></div><pre class="codeinput"><span class="keyword">function</span> [sysAbs] = FSabstraction(varargin)
+<span class="comment">%FSABSTRACTION computes a finite-state abstraction</span>
+<span class="comment">%</span>
+<span class="comment">% sysAbs = FSabstraction(sys,uhat,l,tol,DFA) computes a finite-state</span>
+<span class="comment">% abstraction by gridding the state space of dynamic systems sys</span>
+<span class="comment">%</span>
+<span class="comment">% Including efficient tensor computation for 2D systems</span>
+<span class="comment">% sysAbs = FSabstraction(sys,uhat,l,tol,DFA,'TensorComputation',true);</span>
+<span class="comment">%</span>
+<span class="comment">% Inputs</span>
+<span class="comment">% ------</span>
+<span class="comment">% sys   = systems of class LinModel, PWAmodel or NonlinModel (see folder Models)</span>
+<span class="comment">% uhat  = Finite set of inputs,  example uhat = [-1, 0, 1];</span>
+<span class="comment">% l     = Number of finite states in each dimension  [l1 l2 l3 ...]</span>
+<span class="comment">% tol   =  tolerance for truncating to 0</span>
+<span class="comment">% DFA   = deterministic finite-state automation, (see function TranslateSpec on what is contained in this struct)</span>
+<span class="comment">%</span>
+<span class="comment">% Output struct sysAbs (= finite-state abstraction of sys) consisting of:</span>
+<span class="comment">% -------</span>
+<span class="comment">% states</span>
+<span class="comment">% outputs corresponding to states in sysAbs.states</span>
+<span class="comment">% inputs = finite number of inputs</span>
+<span class="comment">% dim = dimension</span>
+<span class="comment">% orig = original continuous-state system</span>
+<span class="comment">% P = probability matrix, often as a TensorTransitionProbability (see</span>
+<span class="comment">% folder Models)</span>
+<span class="comment">% labels = labels corresponding to states in sysAbs.states</span>
+<span class="comment">% beta = disturbance caused by finite-state abstraction (vector that pushes</span>
+<span class="comment">% states to centers)</span>
+<span class="comment">% hx = outputs corresponding to states in sysAbs.states (equal to sysAbs.outpus if Bw = I)</span>
+<span class="comment">% zstates = states after transformation when we do not have Bw = I.</span>
+<span class="comment">% l = [l1, l2, l3 ...] = number of finite-states in each dimension</span>
+<span class="comment">% Partition = (for nonlinear/PWA systems) partition corresponding to states</span>
+<span class="comment">% in sysAbs.states</span>
+<span class="comment">% outputmap, for LTI systems with output y = Cx, outputmap = C-matrix (when Bw = I)</span>
+<span class="comment">%</span>
+<span class="comment">% Options</span>
+<span class="comment">% -------</span>
+<span class="comment">% 'TensorComputation' = false/true</span>
+<span class="comment">% 'TensorToolbox' = {'2d'(default), 'tensorlab', 'tensortoolbox' }</span>
+<span class="comment">%</span>
+<span class="comment">% Copyright 2021 Sofie Haesaert s.haesaert@tue.nl</span>
+<span class="comment">% 2022 Birgit van Huijgevoort b.c.v.huijgevoort@tue.nl</span>
+
+sys = varargin{1};
+uhat = varargin{2};
+l = varargin{3};
+tol = varargin{4};
+DFA = varargin{5};
+
+<span class="comment">% Default if TensorComputation is not specified</span>
+TensorComputation = 0;
+
+<span class="keyword">for</span> i = 6:length(varargin)
+    <span class="comment">% try to find 'TensorComputation'</span>
+    <span class="keyword">if</span> strcmp(varargin{i},<span class="string">'TensorComputation'</span>)
+        TensorComputation = logical(varargin{i+1});
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+
+<span class="keyword">if</span> sys.dim == 1
+    <span class="keyword">if</span> TensorComputation
+        warning(<span class="string">'Tensor computation not implemented for 1D systems, abstract model computed without tensors instead.'</span>)
+        TensorComputation = 0;
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+
+<span class="comment">% 'TensorComputation' is False</span>
+<span class="keyword">if</span> ~TensorComputation
+    [sysAbs] = GridSpace_nd(sys, uhat, l, tol);
+    sysAbs.l = l;
+<span class="keyword">end</span>
+
+<span class="comment">% 'TensorComputation' is True</span>
+<span class="keyword">if</span> TensorComputation
+    TensorToolbox = <span class="string">'2d'</span>;
+    <span class="keyword">for</span> i = 6:length(varargin)
+        <span class="comment">% try to find 'TensorToolbox'</span>
+        <span class="keyword">if</span> strcmp(varargin{i},<span class="string">'TensorToolbox'</span>)
+            TensorToolbox = varargin{i+1};
+        <span class="keyword">end</span>
+
+    <span class="keyword">end</span>
+
+    [sysAbs] = GridSpace_nonlin_tensor(sys, uhat,l, tol, TensorToolbox);
+<span class="keyword">end</span>
+
+<span class="comment">% Save some extra system parameters into struct</span>
+sysAbs.orig = sys;
+
+<span class="comment">% Label output space</span>
+sysAbs = DeterministicLabelling(sysAbs, DFA, sys.regions, sys.AP);
+
+<span class="keyword">if</span> sys.type == <span class="string">'PWA'</span>
+    <span class="comment">% Determine for each abstract state in which partition it lies</span>
+</pre><h2 id="2">Assumes rectangular grid cells</h2><pre class="codeinput">    temp = ceil((sysAbs.states-(min(sys.X.V)'))./((max(sys.X.V)-min(sys.X.V))').*(sys.N(1:sys.dim)'-1)); <span class="comment">%Coordinate of the partition ([row;column] in 2D)</span>
+    sz = sys.N(1:sys.dim)-1;
+    M = [];
+    <span class="keyword">for</span> i = 1:size(temp,1)
+        M = [M {temp(i,:)}];
+    <span class="keyword">end</span>
+    sysAbs.Partition = sub2ind(sz, M{:});
+<span class="keyword">end</span>
+
+disp(<span class="string">'----&gt; Finish finite-state abstraction'</span>)
+<span class="keyword">end</span>
+</pre><p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2022a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+function [sysAbs] = FSabstraction(varargin)
+%FSABSTRACTION computes a finite-state abstraction 
+%
+% sysAbs = FSabstraction(sys,uhat,l,tol,DFA) computes a finite-state 
+% abstraction by gridding the state space of dynamic systems sys
+%
+% Including efficient tensor computation for 2D systems
+% sysAbs = FSabstraction(sys,uhat,l,tol,DFA,'TensorComputation',true);
+% 
+% Inputs
+% REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH
+% sys   = systems of class LinModel, PWAmodel or NonlinModel (see folder Models)
+% uhat  = Finite set of inputs,  example uhat = [-1, 0, 1];
+% l     = Number of finite states in each dimension  [l1 l2 l3 ...]
+% tol   =  tolerance for truncating to 0
+% DFA   = deterministic finite-state automation, (see function TranslateSpec on what is contained in this struct) 
+%  
+% Output struct sysAbs (= finite-state abstraction of sys) consisting of:
+% REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH-
+% states
+% outputs corresponding to states in sysAbs.states
+% inputs = finite number of inputs
+% dim = dimension
+% orig = original continuous-state system
+% P = probability matrix, often as a TensorTransitionProbability (see
+% folder Models)
+% labels = labels corresponding to states in sysAbs.states
+% beta = disturbance caused by finite-state abstraction (vector that pushes
+% states to centers)
+% hx = outputs corresponding to states in sysAbs.states (equal to sysAbs.outpus if Bw = I)
+% zstates = states after transformation when we do not have Bw = I. 
+% l = [l1, l2, l3 ...] = number of finite-states in each dimension
+% Partition = (for nonlinear/PWA systems) partition corresponding to states
+% in sysAbs.states
+% outputmap, for LTI systems with output y = Cx, outputmap = C-matrix (when Bw = I)
+%
+% Options
+% REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH-
+% 'TensorComputation' = false/true 
+% 'TensorToolbox' = {'2d'(default), 'tensorlab', 'tensortoolbox' }
+%
+% Copyright 2021 Sofie Haesaert s.haesaert@tue.nl
+% 2022 Birgit van Huijgevoort b.c.v.huijgevoort@tue.nl
+ 
+sys = varargin{1};
+uhat = varargin{2};
+l = varargin{3};
+tol = varargin{4};
+DFA = varargin{5};
+
+% Default if TensorComputation is not specified
+TensorComputation = 0;
+
+for i = 6:length(varargin)
+    % try to find 'TensorComputation'
+    if strcmp(varargin{i},'TensorComputation')
+        TensorComputation = logical(varargin{i+1});
+    end
+end
+
+if sys.dim == 1
+    if TensorComputation
+        warning('Tensor computation not implemented for 1D systems, abstract model computed without tensors instead.')
+        TensorComputation = 0;
+    end
+end
+    
+% 'TensorComputation' is False
+if ~TensorComputation 
+    [sysAbs] = GridSpace_nd(sys, uhat, l, tol);
+    sysAbs.l = l;
+end
+
+% 'TensorComputation' is True
+if TensorComputation
+    TensorToolbox = '2d';
+    for i = 6:length(varargin)
+        % try to find 'TensorToolbox'
+        if strcmp(varargin{i},'TensorToolbox')
+            TensorToolbox = varargin{i+1};
+        end
+
+    end
+
+    [sysAbs] = GridSpace_nonlin_tensor(sys, uhat,l, tol, TensorToolbox);
+end
+
+% Save some extra system parameters into struct
+sysAbs.orig = sys;
+
+% Label output space
+sysAbs = DeterministicLabelling(sysAbs, DFA, sys.regions, sys.AP);
+
+if sys.type == 'PWA'
+    % Determine for each abstract state in which partition it lies
+    %%% Assumes rectangular grid cells
+    temp = ceil((sysAbs.states-(min(sys.X.V)'))./((max(sys.X.V)-min(sys.X.V))').*(sys.N(1:sys.dim)'-1)); %Coordinate of the partition ([row;column] in 2D)
+    sz = sys.N(1:sys.dim)-1;
+    M = [];
+    for i = 1:size(temp,1)
+        M = [M {temp(i,:)}];
+    end
+    sysAbs.Partition = sub2ind(sz, M{:});
+end
+
+disp('REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH> Finish finite-state abstraction')
+end
+
+
+##### SOURCE END #####
+--></body></html>

@@ -1,0 +1,455 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>BAS</title><meta name="generator" content="MATLAB 9.12"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2022-11-02"><meta name="DC.source" content="BAS.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h1></h1><!--introduction--><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Building Automation System (BAS) case study</a></li><li><a href="#2">Specify system parameters of 7-dimensional model and regions</a></li><li><a href="#3">Step 1 Translate the specification for the original model</a></li><li><a href="#4">Step 2b Model order reduction</a></li><li><a href="#5">Step 2 Finite-state abstraction</a></li><li><a href="#6">Step 3 Similarity quantification</a></li><li><a href="#7">Step 4 Synthesize a robust controller</a></li><li><a href="#8">Step 5 Control refinement</a></li><li><a href="#9">Step 6 Deployment</a></li><li><a href="#10">Show details on computation time and memory usage</a></li><li><a href="#11">Show satisfaction probability plot</a></li><li><a href="#12">This plot shows that satifaction probability of the reduced-order model</a></li></ul></div><h2 id="1">Building Automation System (BAS) case study</h2><p>Including model order reduction 7D model reduced to a 2D model using model-order reduction author: Birgit van Huijgevoort</p><p>Expected runtime = approx 120 seconds</p><p>sysLTI -&gt; original model sysLTIr -&gt; reduced order model</p><pre class="codeinput">clear;close <span class="string">all</span>;
+
+run <span class="string">Install.m</span>
+
+tStart = tic;
+disp(<span class="string">'Start building automation system benchmark'</span>)
+</pre><h2 id="2">Specify system parameters of 7-dimensional model and regions</h2><pre class="codeinput"><span class="comment">% Load model into sysLTI, with affine-term a</span>
+BASmodel
+
+<span class="comment">% Define input bounds</span>
+ul = 15;
+uu = 30;
+
+<span class="comment">% Define state space bounds</span>
+x1l = 19.5; <span class="comment">% Lowerbound x1</span>
+x1u = 20.5; <span class="comment">% Upperbound x1</span>
+x2l = 10;   <span class="comment">% Lowerbound x2</span>
+x2u = 20;   <span class="comment">% Upperbound x2</span>
+LowerBounds = [x1l;x2l;zeros(5,1)];
+UpperBounds = [x1u;x2u;30*ones(5,1)];
+
+<span class="comment">% Transform model, such that w comes from Gaussian distribution with mean 0</span>
+<span class="comment">% and variance identity</span>
+[sysLTI, a] = NormalizeDisturbance(sysLTI,a);
+
+<span class="comment">% Since the original dynamics are of an affine system, we will transform</span>
+<span class="comment">% the system to an LTI system by adjusting the state and output wrt a</span>
+<span class="comment">% steady state value xss.</span>
+<span class="comment">% In other words, we remove affine term a by looking at a</span>
+<span class="comment">% steady state solution xss and obtain a new system with state x-xss and</span>
+<span class="comment">% output y-C*xss</span>
+
+<span class="comment">% Choose steady state values</span>
+uss = ul;
+xss = -inv(A-eye(dim))*(B*uss+a);
+
+<span class="comment">% New bounds on input space (u-uss)</span>
+ul = ul-uss;     <span class="comment">% Lowerbound input u</span>
+uu = uu-uss;     <span class="comment">% Upperbound input u</span>
+
+<span class="comment">% Define bounded input space</span>
+sysLTI.U = Polyhedron(combvec([ul(1),uu(1)])');
+
+<span class="comment">% Compute new bounds on state space (x-xss)</span>
+x1l = x1l-xss(1);
+x1u = x1u-xss(1);
+x2l = x2l-xss(2);
+x2u = x2u-xss(2);
+<span class="comment">% Define bounded state space</span>
+sysLTI.X = Polyhedron(<span class="string">'lb'</span>, LowerBounds-xss, <span class="string">'ub'</span>, UpperBounds-xss);
+
+<span class="comment">% Specify region for the specification</span>
+P1 = Polyhedron(combvec([x1l,x1u])');
+
+<span class="comment">% Region that get specific atomic proposition</span>
+sysLTI.regions = [P1];
+<span class="comment">% Proposition corresponding to the region</span>
+sysLTI.AP = {<span class="string">'p1'</span>};
+
+<span class="comment">% Select interface function for MOR, u = ur + Qxr + K(x-Pxr)</span>
+int_f = 1;
+<span class="comment">% Interface function between reduced-order model and finite-state</span>
+<span class="comment">% abstraction is automatically set to default, ur = uhat</span>
+</pre><h2 id="3">Step 1 Translate the specification for the original model</h2><pre class="codeinput">t1start = tic;
+
+N = 6; <span class="comment">% (finite) time horizon of spec</span>
+
+<span class="comment">% Define the scLTL specification</span>
+formula = <span class="string">'(p1 &amp; X p1 &amp; X X p1 &amp; X X X p1 &amp; X X X X p1 &amp; X X X X X p1)'</span>;
+
+<span class="comment">% Translate the spec to a DFA</span>
+[DFA] = TranslateSpec(formula, sysLTI.AP);
+
+t1end = toc(t1start);
+</pre><h2 id="4">Step 2b Model order reduction</h2><pre class="codeinput">t2start = tic;
+
+f = 0.098;  <span class="comment">% tuning parameter for feedback-matrix F</span>
+dimr = 2; <span class="comment">% desired dimension of reduced-order model</span>
+<span class="comment">% Construct reduced-order model</span>
+[sysLTIr, ~] = ModelReduction(sysLTI,dimr,f);
+
+<span class="comment">% Compute projection matrix P and Q for interface function</span>
+<span class="comment">% u = ur + Qxr + K(x-Pxr) and add them to sysLTIr</span>
+sysLTIr = ComputeProjection(sysLTI,sysLTIr);
+
+<span class="comment">% Define bounded state space of reduced-order model</span>
+sysLTIr.X = Polyhedron(combvec([x1l,x1u],[x2l,x2u])');
+<span class="comment">% Define bounded input space of reduced-order model</span>
+sysLTIr.U = sysLTI.U;
+
+<span class="comment">% Regions that get specific atomic propositions</span>
+sysLTIr.regions = [P1];
+
+<span class="comment">% Propositions corresponding to the regions</span>
+sysLTIr.AP = {<span class="string">'p1'</span>};
+</pre><h2 id="5">Step 2 Finite-state abstraction</h2><pre class="codeinput"><span class="comment">% Construct abstract input space</span>
+lu = 3;  <span class="comment">% number of abstract inputs in each direction</span>
+[uhat,sysLTIr.U] = GridInputSpace(lu,sysLTIr.U,<span class="string">'interface'</span>,int_f,0.6,0.175); <span class="comment">% abstract input space</span>
+
+<span class="comment">% Reduce the state space to speed up computations [option only available for invariance specs]</span>
+[sysLTIr,~] = ReduceX(sysLTIr, sysLTIr.U{2}, P1, <span class="string">'invariance'</span>, 5);
+
+<span class="comment">% Construct finite-state abstraction</span>
+l = [3000*3000];  <span class="comment">% total number of grid cells</span>
+tol=10^-6;
+sysAbs = FSabstraction(sysLTIr,uhat,l,tol,DFA,<span class="string">'TensorComputation'</span>,true);
+
+t2end = toc(t2start);
+</pre><h2 id="6">Step 3 Similarity quantification</h2><pre class="codeinput">t3start = tic;
+
+<span class="comment">% set values of epsilon</span>
+epsilon_1 = 0.2413; <span class="comment">% output deviation for MOR simulation relation</span>
+epsilon_2 = 0.1087; <span class="comment">% output deviation for gridding simulation relation</span>
+
+<span class="comment">% Compute MOR simulation relation</span>
+[rel_1, K, kernel] = QuantifySim(sysLTI, sysLTIr, epsilon_1, <span class="string">'MOR'</span>, sysAbs);
+
+<span class="comment">% Compute gridding simulation relation</span>
+[rel_2] = QuantifySim(sysLTIr, sysAbs, epsilon_2);
+
+<span class="comment">% Combine simulation relations</span>
+rel = CombineSimRel(rel_1, rel_2, sysLTIr, sysAbs);
+
+t3end = toc(t3start);
+</pre><h2 id="7">Step 4 Synthesize a robust controller</h2><pre class="codeinput">t4start = tic;
+
+thold = 1e-6;
+<span class="comment">% Synthesize an abstract robust controller</span>
+[satProb, pol] = SynthesizeRobustController(sysAbs,DFA,rel,thold,false);
+
+t4end = toc(t4start);
+</pre><h2 id="8">Step 5 Control refinement</h2><pre class="codeinput">t5start = tic;
+
+<span class="comment">% Refine abstract controller to a continous-state controller</span>
+Controller = RefineController(satProb,pol,sysAbs,rel,sysLTIr,DFA,int_f,K);
+
+t5end = toc(t5start);
+</pre><h2 id="9">Step 6 Deployment</h2><pre class="codeinput">t6start = tic;
+
+<span class="comment">% Supply an initial state for the LTI system (x_LTI = x_affine - xss)</span>
+[i,j] = max(satProb(DFA.S0,:));
+xr0 = sysAbs.states(:,j);
+<span class="comment">% alternative: xr0 = sysLTIr.X.chebyCenter.x</span>
+x0 = sysLTIr.P*xr0;
+
+<span class="comment">% Simulate controlled system Ns times</span>
+Ns = 6;
+xsim = ImplementController(x0, N, Controller, Ns, <span class="string">'MOR'</span>, sysLTIr, kernel);
+
+<span class="comment">% Plot resulting trajectories</span>
+<span class="comment">%plotTrajectories(xsim, [LowerBounds UpperBounds], sysLTI, 'shift', xss);</span>
+
+t6end = toc(t6start);
+</pre><h2 id="10">Show details on computation time and memory usage</h2><pre class="codeinput">tEnd = toc(tStart);
+
+<span class="comment">% Display computation time per step and total.</span>
+disp(<span class="string">' '</span>)
+disp([<span class="string">'Step 1: '</span>, mat2str(t1end,3), <span class="string">' seconds'</span>])
+disp([<span class="string">'Step 2: '</span>, mat2str(t2end,3), <span class="string">' seconds'</span>])
+disp([<span class="string">'Step 3: '</span>, mat2str(t3end,3), <span class="string">' seconds'</span>])
+disp([<span class="string">'Step 4: '</span>, mat2str(t4end,3), <span class="string">' seconds'</span>])
+disp([<span class="string">'Step 5: '</span>, mat2str(t5end,3), <span class="string">' seconds'</span>])
+disp([<span class="string">'Step 6: '</span>, mat2str(t6end,3), <span class="string">' seconds'</span>])
+disp(<span class="string">' '</span>)
+disp([<span class="string">'Total runtime = '</span>, mat2str(tEnd,3), <span class="string">' seconds'</span>])
+disp(<span class="string">' '</span>)
+<span class="comment">% Display total memory usage</span>
+d = whos();
+Mem = sum([d.bytes]);
+Mem = Mem*1e-6; <span class="comment">% memory usage in Mb</span>
+
+disp([<span class="string">'Memory usage: '</span>, mat2str(Mem), <span class="string">' Mb'</span>])
+</pre><h2 id="11">Show satisfaction probability plot</h2><pre class="codeinput"><span class="comment">% Plot satisfaction probability</span>
+plotSatProb(satProb, sysAbs, <span class="string">'initial'</span>, DFA, <span class="string">'shift'</span>, xss, <span class="string">'MOR'</span>);
+</pre><h2 id="12">This plot shows that satifaction probability of the reduced-order model</h2><p>compensated with a steady shift of [xss(1);xss(2)] to translate the state in this Figure [xr1;xr2] to the corresponding state of the affine system, use x0 = sysLTIr.P*[xr1-xss(1);xr2-xss(2)]+xss</p><pre class="codeinput">disp(<span class="string">'Finished building automation system benchmark'</span>)
+</pre><p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2022a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%%% Building Automation System (BAS) case study
+% Including model order reduction
+% 7D model reduced to a 2D model using model-order reduction
+% author: Birgit van Huijgevoort
+%
+% Expected runtime = approx 120 seconds
+%
+% sysLTI -> original model
+% sysLTIr -> reduced order model
+
+clear;close all;
+
+run Install.m
+
+tStart = tic;
+disp('Start building automation system benchmark')
+
+%% Specify system parameters of 7-dimensional model and regions
+
+% Load model into sysLTI, with affine-term a
+BASmodel
+
+% Define input bounds
+ul = 15;
+uu = 30;
+
+% Define state space bounds 
+x1l = 19.5; % Lowerbound x1
+x1u = 20.5; % Upperbound x1
+x2l = 10;   % Lowerbound x2
+x2u = 20;   % Upperbound x2
+LowerBounds = [x1l;x2l;zeros(5,1)];
+UpperBounds = [x1u;x2u;30*ones(5,1)];
+
+% Transform model, such that w comes from Gaussian distribution with mean 0
+% and variance identity
+[sysLTI, a] = NormalizeDisturbance(sysLTI,a);
+
+% Since the original dynamics are of an affine system, we will transform
+% the system to an LTI system by adjusting the state and output wrt a
+% steady state value xss.
+% In other words, we remove affine term a by looking at a
+% steady state solution xss and obtain a new system with state x-xss and
+% output y-C*xss
+
+% Choose steady state values
+uss = ul;
+xss = -inv(A-eye(dim))*(B*uss+a);
+
+% New bounds on input space (u-uss)
+ul = ul-uss;     % Lowerbound input u
+uu = uu-uss;     % Upperbound input u
+
+% Define bounded input space
+sysLTI.U = Polyhedron(combvec([ul(1),uu(1)])');
+
+% Compute new bounds on state space (x-xss)
+x1l = x1l-xss(1);   
+x1u = x1u-xss(1);  
+x2l = x2l-xss(2);   
+x2u = x2u-xss(2);   
+% Define bounded state space
+sysLTI.X = Polyhedron('lb', LowerBounds-xss, 'ub', UpperBounds-xss);
+
+% Specify region for the specification
+P1 = Polyhedron(combvec([x1l,x1u])');
+
+% Region that get specific atomic proposition
+sysLTI.regions = [P1];
+% Proposition corresponding to the region
+sysLTI.AP = {'p1'};
+
+% Select interface function for MOR, u = ur + Qxr + K(x-Pxr)
+int_f = 1;
+% Interface function between reduced-order model and finite-state
+% abstraction is automatically set to default, ur = uhat
+
+%% Step 1 Translate the specification for the original model
+t1start = tic;
+
+N = 6; % (finite) time horizon of spec
+
+% Define the scLTL specification
+formula = '(p1 & X p1 & X X p1 & X X X p1 & X X X X p1 & X X X X X p1)';
+
+% Translate the spec to a DFA
+[DFA] = TranslateSpec(formula, sysLTI.AP);
+
+t1end = toc(t1start);
+%% Step 2b Model order reduction
+t2start = tic;
+
+f = 0.098;  % tuning parameter for feedback-matrix F
+dimr = 2; % desired dimension of reduced-order model
+% Construct reduced-order model
+[sysLTIr, ~] = ModelReduction(sysLTI,dimr,f);
+
+% Compute projection matrix P and Q for interface function
+% u = ur + Qxr + K(x-Pxr) and add them to sysLTIr
+sysLTIr = ComputeProjection(sysLTI,sysLTIr);
+
+% Define bounded state space of reduced-order model
+sysLTIr.X = Polyhedron(combvec([x1l,x1u],[x2l,x2u])');
+% Define bounded input space of reduced-order model
+sysLTIr.U = sysLTI.U;
+
+% Regions that get specific atomic propositions
+sysLTIr.regions = [P1];
+
+% Propositions corresponding to the regions
+sysLTIr.AP = {'p1'};
+
+%% Step 2 Finite-state abstraction
+
+% Construct abstract input space
+lu = 3;  % number of abstract inputs in each direction
+[uhat,sysLTIr.U] = GridInputSpace(lu,sysLTIr.U,'interface',int_f,0.6,0.175); % abstract input space
+
+% Reduce the state space to speed up computations [option only available for invariance specs]
+[sysLTIr,~] = ReduceX(sysLTIr, sysLTIr.U{2}, P1, 'invariance', 5);
+
+% Construct finite-state abstraction
+l = [3000*3000];  % total number of grid cells
+tol=10^-6;
+sysAbs = FSabstraction(sysLTIr,uhat,l,tol,DFA,'TensorComputation',true);
+
+t2end = toc(t2start);
+%% Step 3 Similarity quantification
+t3start = tic;
+
+% set values of epsilon
+epsilon_1 = 0.2413; % output deviation for MOR simulation relation
+epsilon_2 = 0.1087; % output deviation for gridding simulation relation
+
+% Compute MOR simulation relation
+[rel_1, K, kernel] = QuantifySim(sysLTI, sysLTIr, epsilon_1, 'MOR', sysAbs);
+
+% Compute gridding simulation relation
+[rel_2] = QuantifySim(sysLTIr, sysAbs, epsilon_2);
+
+% Combine simulation relations
+rel = CombineSimRel(rel_1, rel_2, sysLTIr, sysAbs);
+
+t3end = toc(t3start);
+%% Step 4 Synthesize a robust controller
+t4start = tic;
+
+thold = 1e-6;
+% Synthesize an abstract robust controller
+[satProb, pol] = SynthesizeRobustController(sysAbs,DFA,rel,thold,false);
+
+t4end = toc(t4start);
+%% Step 5 Control refinement
+t5start = tic;
+
+% Refine abstract controller to a continous-state controller
+Controller = RefineController(satProb,pol,sysAbs,rel,sysLTIr,DFA,int_f,K);
+
+t5end = toc(t5start);
+%% Step 6 Deployment
+t6start = tic;
+
+% Supply an initial state for the LTI system (x_LTI = x_affine - xss)
+[i,j] = max(satProb(DFA.S0,:));
+xr0 = sysAbs.states(:,j);
+% alternative: xr0 = sysLTIr.X.chebyCenter.x
+x0 = sysLTIr.P*xr0;
+
+% Simulate controlled system Ns times
+Ns = 6;
+xsim = ImplementController(x0, N, Controller, Ns, 'MOR', sysLTIr, kernel);
+
+% Plot resulting trajectories
+%plotTrajectories(xsim, [LowerBounds UpperBounds], sysLTI, 'shift', xss);
+
+t6end = toc(t6start);
+%% Show details on computation time and memory usage
+tEnd = toc(tStart);
+
+% Display computation time per step and total.
+disp(' ')
+disp(['Step 1: ', mat2str(t1end,3), ' seconds'])
+disp(['Step 2: ', mat2str(t2end,3), ' seconds'])
+disp(['Step 3: ', mat2str(t3end,3), ' seconds'])
+disp(['Step 4: ', mat2str(t4end,3), ' seconds'])
+disp(['Step 5: ', mat2str(t5end,3), ' seconds'])
+disp(['Step 6: ', mat2str(t6end,3), ' seconds'])
+disp(' ')
+disp(['Total runtime = ', mat2str(tEnd,3), ' seconds']) 
+disp(' ')
+% Display total memory usage
+d = whos();
+Mem = sum([d.bytes]);
+Mem = Mem*1e-6; % memory usage in Mb
+
+disp(['Memory usage: ', mat2str(Mem), ' Mb'])
+
+%% Show satisfaction probability plot 
+
+% Plot satisfaction probability
+plotSatProb(satProb, sysAbs, 'initial', DFA, 'shift', xss, 'MOR');
+%%% This plot shows that satifaction probability of the reduced-order model 
+% compensated with a steady shift of [xss(1);xss(2)]
+% to translate the state in this Figure [xr1;xr2] to the corresponding state of the
+% affine system, use x0 = sysLTIr.P*[xr1-xss(1);xr2-xss(2)]+xss
+
+disp('Finished building automation system benchmark')
+##### SOURCE END #####
+--></body></html>

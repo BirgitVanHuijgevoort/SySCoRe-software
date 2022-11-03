@@ -1,17 +1,71 @@
 function [DFA] = TranslateSpec(formula,AP,debug)
-% Written by Birgit van Huijgevoort, Sofie Haesaert
-% input: LTL formula and atomic propositions
-% output: struct DFA consisting of:
+%TRANSLATESPEC translates an scLTL specification to a deterministic
+% finite-state automaton (DFA)
+%
+% Inputs
+% ------
+% formula = specification written in scLTL, for syntax see LTL2BA/README
+% AP = atomic propositions
+%
+% Output struct DFA consisting of:
+% -----
 % states S
 % initial states S0
 % final states F
+% sink states sink
 % actions act consists of strings that activate the transitions
 % transitions trans with columns = actions as in DFA.act, row = state q, value = next state
+% 
+% Basic reach-avoid example: 
+% AP = {'p1','p2'};
+% formula = '(!p2 U p1)';  % p1 = reach region, p2 = avoid region
+% [DFA] = TranslateSpec(formula,sysLTI.AP)
+%
+% This code uses the tool LTL2BA, which can be found at http://www.lsv.fr/~gastin/ltl2ba/
+% and is written by Denis Oddoux (v1.0) and modified by Paul Gastin (v1.2 & v1.3)
+%
+% Copyright 2022 Sofie Haesaert s.haesaert@tue.nl, Birgit van Huijgevoort b.c.v.huijgevoort@tue.nl
 
-%%
+%% check if formula is in scLTL (instead of LTL)
+disp('<---- Start translate specification')
+
+% check if always (G) is not in formula
+if ~isempty(strfind(formula, 'G'))
+    error('Specification is not an scLTL specification, please input a different specification, or input a DFA.')
+end
+
+% check if negations are only given before APs
+negs = strfind(formula, '!'); % find negations
+% Get indices of atomic propositions
+AP_index = [];
+for j = 1:length(AP)
+    index = strfind(formula,AP(j));
+    AP_index = [AP_index, index];
+end
+flag = 0;
+for i = 1:length(negs)
+    % ! is directly followed by atomic proposition
+    good = find(AP_index==negs(i)+1);
+    % alternative: check if there is no operator after !
+    if isempty(good)
+        if formula(negs+1) ~= '&' & formula(negs+1) ~= '|' & formula(negs+1) ~= 'F' ...
+                & formula(negs+1) ~= 'U' & formula(negs+1) ~= 'R' & formula(negs+1) ~= 'X'
+            good = 1;
+        end
+    end
+    if isempty(good)
+        flag = 1;
+    end
+end
+if flag
+    error('Specification is not an scLTL specification, please input a different specification, or input a DFA.')
+end
+
+
+%% Construct Buchi automaton
 [B,alphabet] = spec2buchi(formula, AP);
 
-
+%% Clean up Buchi automaton
 % 1. Clean up Buchi Automaton. Remove states from Buchi that do not have a
 % possible loop. 
 selfloop =[];
@@ -42,6 +96,7 @@ if length(B.S0) ~=1
     error('length(B.S0) ~=1: This feature has not been implemented')
 end
 
+%% Translate to DFA
 % You now have a NFA. This still needs to be translated to a DFA
 
 % step 1: create a table using cell
@@ -82,7 +137,7 @@ while length(dfa_states) > s_index
             
             
             if max(poss_trans)==0 
-                display('add state')
+                %display('add state')
                 trans(s_index, act) = length(dfa_states)+1;
 
                 dfa_states = {dfa_states{1:end}, s_found};
@@ -104,5 +159,7 @@ DFA.F = 1;          % Accepting state is the first state.
 DFA.act = alphabet; % alphabet used as inputs for actions 
 DFA.trans = trans;  % transitions
 DFA.sink = DFA.S(all(DFA.trans == DFA.S',2)); % find modes with only self loops
+
+disp('----> Finish translate specification')
 end
 

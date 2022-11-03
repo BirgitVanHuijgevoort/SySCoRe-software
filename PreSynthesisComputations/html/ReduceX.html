@@ -1,0 +1,306 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>ReduceX</title><meta name="generator" content="MATLAB 9.12"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2022-11-03"><meta name="DC.source" content="ReduceX.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#3">Preliminaries</a></li><li><a href="#4">Init reach set</a></li><li><a href="#5">Debugging figures</a></li><li><a href="#6">Retrieve reduced model</a></li></ul></div><pre class="codeinput"><span class="keyword">function</span> [linMod, R] = ReduceX(linMod, inputset,  goal_region, type, <span class="keyword">...</span>
+    horizon, varargin)
+</pre><pre class="codeinput"><span class="comment">% REDUCEX reduce the polytopic state space set to the set of states of</span>
+<span class="comment">% interest for a time-bounded invariance specification defined via a</span>
+<span class="comment">% set in the output space.</span>
+<span class="comment">%</span>
+<span class="comment">%</span>
+<span class="comment">% Inputs</span>
+<span class="comment">% ------</span>
+<span class="comment">% linMod = Object of class LinModel</span>
+<span class="comment">% inputset = interval [u_min, u_max]</span>
+<span class="comment">% output_region = output region of interest. In case of an invariance</span>
+<span class="comment">% specification this is the region in which you have to stay during the given time horizon.</span>
+<span class="comment">% type = 'invariance'. Note: currently only invariance computations have ben</span>
+<span class="comment">% implemented.</span>
+<span class="comment">% horizon = Number of time steps for the specification type</span>
+<span class="comment">%</span>
+<span class="comment">% Outputs</span>
+<span class="comment">% -------</span>
+<span class="comment">% linMod = linMod object with state space equal to R.</span>
+<span class="comment">% R =  the set of states from which your output can stay in the output_region for horizon</span>
+<span class="comment">% number of times.</span>
+<span class="comment">%</span>
+<span class="comment">% Example</span>
+<span class="comment">% ------</span>
+<span class="comment">% sysLTI = LinModel(A,B,C,[],Bw,mu,sigma) %% see Models/LinModel for example</span>
+<span class="comment">% [sysLTI,~] = ReduceX(sysLTI, [-1,1] , P1, 'invariance', 5);</span>
+<span class="comment">%</span>
+<span class="comment">% Acknowledgement: This code uses the MPT toolbox to compute the set of</span>
+<span class="comment">% states of interest for bounded horizon computations.</span>
+<span class="comment">%</span>
+<span class="comment">% Copyright 2022 Sofie Haesaert s.haesaert@tue.nl, Birgit van Huijgevoort b.c.v.huijgevoort@tue.nl</span>
+</pre><h2 id="3">Preliminaries</h2><pre class="codeinput"><span class="comment">% Check whether conditions under which this code holds are satisfied</span>
+<span class="keyword">if</span> ~strcmp(type, <span class="string">'invariance'</span>)
+    error([<span class="string">'The type = '</span>, type, <span class="string">' is not yet known or implemented'</span>])
+
+<span class="keyword">end</span>
+
+<span class="keyword">if</span> isa(inputset, <span class="string">'Polyhedron'</span>)
+    <span class="comment">% Compute lower- and upperbound of input set if not given</span>
+    ula = min(inputset.V,[], <span class="string">'all'</span>);    <span class="comment">% lower-bound on input space for actuation</span>
+    uua = max(inputset.V,[], <span class="string">'all'</span>);    <span class="comment">% upper-bound on input space for actuation</span>
+
+    inputset = [ula,uua];
+<span class="keyword">end</span>
+
+<span class="comment">% Compute output_region by enlarging the goal region</span>
+[~, output_region] = IncreaseDecreasePolytope(goal_region, 0.1);
+
+<span class="comment">% Compute initial set</span>
+R_init = Polyhedron(output_region.A*linMod.C, output_region.b);
+
+<span class="comment">% load the linMod class into the LTISystem object of the mpt toolbox</span>
+system = LTISystem(<span class="string">'A'</span>,  linMod.A, <span class="string">'B'</span>, linMod.B);
+system.x.min = min(linMod.X.V, [], 1); <span class="comment">% compute a box around the given state space of the linMod system</span>
+system.x.max = max(linMod.X.V, [], 1); <span class="comment">% compute a box around the given state space of the linMod system</span>
+system.u.min = inputset(:,1); <span class="comment">% compute a box around the given input space of the linMod system</span>
+system.u.max = inputset(:,2); <span class="comment">% compute a box around the given input space of the linMod system</span>
+
+<span class="keyword">if</span> size(inputset,1) ~=1
+    warning(<span class="string">'works for 1 inputs only'</span>)
+<span class="keyword">end</span>
+U = Polyhedron(inputset');
+
+<span class="comment">% %% Debugging figures</span>
+<span class="comment">% figure(1)</span>
+<span class="comment">% subplot(2,1,1)</span>
+<span class="comment">% hold off</span>
+<span class="comment">% R_init.plot()</span>
+<span class="comment">% title(['backward invariance set i = ', num2str(1)])</span>
+</pre><h2 id="4">Init reach set</h2><pre class="codeinput">R= cell(horizon,1);
+
+R{1}= R_init;
+V = [ ];
+<span class="keyword">for</span> i=1:horizon
+    R_ = system.reachableSet(<span class="string">'X'</span>, R{i}, <span class="string">'U'</span>, U, <span class="string">'N'</span>, 1, <span class="keyword">...</span>
+        <span class="string">'direction'</span>, <span class="string">'backward'</span>);
+    R{i+1} = R_ &amp; R_init;
+    V = [V;R{i+1}.V];
+<span class="keyword">end</span>
+</pre><h2 id="5">Debugging figures</h2><pre class="codeinput"><span class="comment">%debugfigs(i, R)</span>
+</pre><h2 id="6">Retrieve reduced model</h2><pre class="codeinput">X = Polyhedron(V);
+X.minVRep;
+linMod.X = X;
+</pre><pre class="codeinput"><span class="keyword">end</span>
+
+
+<span class="keyword">function</span> debugfigs(i, R)
+<span class="comment">% Debugging figures</span>
+figure(1)
+tl = tiledlayout(2, i+1);
+
+<span class="comment">% Print backward invariant sets</span>
+<span class="keyword">for</span> j = 1:i+1
+    ax = nexttile;
+    R{j}.plot();
+    title(ax, [<span class="string">'Backward invariance, i = '</span>, num2str(j)])
+    subtitle(ax, <span class="string">'Invariant set'</span>)
+    xl{j} = xlim(ax);
+    yl{j} = ylim(ax);
+<span class="keyword">end</span>
+
+<span class="comment">% Print vertices of backward invariant sets</span>
+<span class="keyword">for</span> j = 1:i+1
+    ax = nexttile;
+    scatter(R{j}.V(:,1), R{j}.V(:,2), 60, [204 204 255]/256, <span class="string">'filled'</span>)
+    subtitle(ax, <span class="string">'Vertices'</span>)
+    xlim(ax, xl{j})
+    ylim(ax, yl{j})
+    grid <span class="string">on</span>
+<span class="keyword">end</span>
+<span class="keyword">end</span>
+</pre><p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2022a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+function [linMod, R] = ReduceX(linMod, inputset,  goal_region, type, ...
+    horizon, varargin)
+% REDUCEX reduce the polytopic state space set to the set of states of 
+% interest for a time-bounded invariance specification defined via a 
+% set in the output space.
+% 
+%
+% Inputs
+% REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH
+% linMod = Object of class LinModel
+% inputset = interval [u_min, u_max]
+% output_region = output region of interest. In case of an invariance
+% specification this is the region in which you have to stay during the given time horizon. 
+% type = 'invariance'. Note: currently only invariance computations have ben
+% implemented.
+% horizon = Number of time steps for the specification type 
+%
+% Outputs 
+% REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH-
+% linMod = linMod object with state space equal to R.
+% R =  the set of states from which your output can stay in the output_region for horizon
+% number of times. 
+% 
+% Example
+% REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH
+% sysLTI = LinModel(A,B,C,[],Bw,mu,sigma) %% see Models/LinModel for example
+% [sysLTI,~] = ReduceX(sysLTI, [-1,1] , P1, 'invariance', 5);
+%
+% Acknowledgement: This code uses the MPT toolbox to compute the set of
+% states of interest for bounded horizon computations. 
+%
+% Copyright 2022 Sofie Haesaert s.haesaert@tue.nl, Birgit van Huijgevoort b.c.v.huijgevoort@tue.nl
+
+%% Preliminaries
+
+% Check whether conditions under which this code holds are satisfied
+if ~strcmp(type, 'invariance')
+    error(['The type = ', type, ' is not yet known or implemented'])
+
+end
+
+if isa(inputset, 'Polyhedron')
+    % Compute lower- and upperbound of input set if not given
+    ula = min(inputset.V,[], 'all');    % lower-bound on input space for actuation
+    uua = max(inputset.V,[], 'all');    % upper-bound on input space for actuation
+
+    inputset = [ula,uua];
+end
+
+% Compute output_region by enlarging the goal region
+[~, output_region] = IncreaseDecreasePolytope(goal_region, 0.1);
+
+% Compute initial set
+R_init = Polyhedron(output_region.A*linMod.C, output_region.b);
+
+% load the linMod class into the LTISystem object of the mpt toolbox
+system = LTISystem('A',  linMod.A, 'B', linMod.B);
+system.x.min = min(linMod.X.V, [], 1); % compute a box around the given state space of the linMod system
+system.x.max = max(linMod.X.V, [], 1); % compute a box around the given state space of the linMod system
+system.u.min = inputset(:,1); % compute a box around the given input space of the linMod system
+system.u.max = inputset(:,2); % compute a box around the given input space of the linMod system
+
+if size(inputset,1) ~=1
+    warning('works for 1 inputs only')
+end
+U = Polyhedron(inputset');
+
+% %% Debugging figures
+% figure(1)
+% subplot(2,1,1)
+% hold off
+% R_init.plot()
+% title(['backward invariance set i = ', num2str(1)])
+
+%% Init reach set
+R= cell(horizon,1);
+
+R{1}= R_init;
+V = [ ];
+for i=1:horizon
+    R_ = system.reachableSet('X', R{i}, 'U', U, 'N', 1, ...
+        'direction', 'backward');
+    R{i+1} = R_ & R_init;
+    V = [V;R{i+1}.V];
+end
+
+%% Debugging figures
+%debugfigs(i, R)
+
+%% Retrieve reduced model
+X = Polyhedron(V);
+X.minVRep;
+linMod.X = X;
+end
+
+
+function debugfigs(i, R)
+% Debugging figures
+figure(1)
+tl = tiledlayout(2, i+1);
+
+% Print backward invariant sets
+for j = 1:i+1
+    ax = nexttile;
+    R{j}.plot();
+    title(ax, ['Backward invariance, i = ', num2str(j)])
+    subtitle(ax, 'Invariant set')
+    xl{j} = xlim(ax);
+    yl{j} = ylim(ax);
+end
+
+% Print vertices of backward invariant sets
+for j = 1:i+1
+    ax = nexttile;
+    scatter(R{j}.V(:,1), R{j}.V(:,2), 60, [204 204 255]/256, 'filled')
+    subtitle(ax, 'Vertices')
+    xlim(ax, xl{j})
+    ylim(ax, yl{j})
+    grid on
+end
+end
+##### SOURCE END #####
+--></body></html>

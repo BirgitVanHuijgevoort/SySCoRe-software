@@ -1,0 +1,404 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>PWAModel</title><meta name="generator" content="MATLAB 9.12"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2022-11-02"><meta name="DC.source" content="PWAModel.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><pre class="codeinput"><span class="keyword">classdef</span> PWAModel
+<span class="comment">% PWAMODEL Class of piecewise-affine systems with noise on the transitions.</span>
+<span class="comment">% Objects of this class define a piecewise-affine model with dynamics</span>
+<span class="comment">% x(t+1) = A_i x(t) + B_i u(t) + a_i + B_w w(t); y(t)   = C_i x(t), with i\in[1,Np]</span>
+<span class="comment">% that approximates the nonlinear model from NonLinModel with function f(x(t)).</span>
+<span class="comment">% Here, w(t) ~ N(mu, sigma), with N a normal distribution with mean mu</span>
+<span class="comment">% and sigma the noise variance.</span>
+<span class="comment">%</span>
+<span class="comment">% Examples</span>
+<span class="comment">% A simple 2 dimensional model with one control input and one</span>
+<span class="comment">% output:</span>
+<span class="comment">%   C = [1, 1];</span>
+<span class="comment">%   Bw = [0; 1];</span>
+<span class="comment">%   model = PWAModel(@vanderpol_PWA_f,Partition,C,Bw,[0;0],eye(2));</span>
+<span class="comment">%</span>
+<span class="comment">% with function vanderpol_f defined below.</span>
+<span class="comment">%   function xp = vanderpol_f(x, u,sys)</span>
+<span class="comment">%     if nargin ~= 3</span>
+<span class="comment">%         error('Invalid input !');</span>
+<span class="comment">%     end</span>
+<span class="comment">%</span>
+<span class="comment">%     if size(x,1)~=2</span>
+<span class="comment">%         error('Wrong size of x');</span>
+<span class="comment">%     end</span>
+<span class="comment">%     xp = zeros(size(x));</span>
+<span class="comment">%</span>
+<span class="comment">%     xp(1,:) = x(1,:) + sys.param.tau *x(2,:);</span>
+<span class="comment">%     xp(2,:) = x(2,:)+ (-x(1,:) + (1-x(1,:).^2) .* x(2,:)) .* sys.param.tau + u;</span>
+<span class="comment">%     end</span>
+<span class="comment">%</span>
+<span class="comment">% with Partition(i) defined below for i = 1</span>
+<span class="comment">% Partition(1).Polyhedron = ([combvec([-3 -2.85], [-3, -2.85])]')</span>
+<span class="comment">% Partition(1).Dynamics.A = [1 0; 0 1];</span>
+<span class="comment">% Partition(1).Dynamics.a = [1; 1];</span>
+<span class="comment">% Partition(1).Dynamics.B = [0;1];</span>
+<span class="comment">% Partition(1).Dynamics.C = [1 0];</span>
+<span class="comment">% Partition(1).Dynamics.D = 0;</span>
+<span class="comment">% Partition(1).Dynamics.Bw = [0;1];</span>
+<span class="comment">% Partition(1).Dynamics.dim = sysNonLin.dim;</span>
+<span class="comment">%</span>
+<span class="comment">% Copyright 2022 Birgit van Huijgevoort, b.c.v.huijgevoort@tue.nl</span>
+
+    <span class="keyword">properties</span>
+        type = <span class="string">"PWA"</span>;
+        f <span class="comment">% the deterministic function for the state update</span>
+        Partition <span class="comment">% struct containing the dynamics and polyhedrons of the partitions</span>
+        C <span class="comment">% C matrix to map from state to to output space</span>
+        Bw <span class="comment">% Bw matrix for the noise</span>
+        Np <span class="comment">% number of partitions</span>
+        mu <span class="comment">% noise mean</span>
+        sigma <span class="comment">% noise variance</span>
+        dim  <span class="comment">% the dimension of the state space</span>
+        orig <span class="comment">% original nonlinear model</span>
+        N <span class="comment">% number of partitions in each direction used to obtain PWA approximation</span>
+
+        X <span class="comment">% state space</span>
+        U <span class="comment">% input space</span>
+        regions <span class="comment">% regions labelled with atomic propositions</span>
+        AP <span class="comment">% atomic propositions</span>
+        P <span class="comment">% the probability transition matrix. (Class: TransitionProbability)</span>
+
+    <span class="keyword">end</span>
+
+    <span class="keyword">methods</span>
+        <span class="keyword">function</span> obj = PWAModel(Partition,C,Bw,mu,sigma)
+            <span class="comment">%PWAMODEL Construct an instance of this class</span>
+            <span class="comment">%   Load all values f, Partition, C, ... as described in the</span>
+            <span class="comment">%   class file.</span>
+            <span class="comment">%   model = PWAModel(f,Partition,C,Bw,mu,sigma) Loads model dynamics.</span>
+            <span class="comment">%</span>
+            <span class="comment">%</span>
+            <span class="comment">% Examples</span>
+            <span class="comment">% A simple 2 dimensional model with one control input and one</span>
+            <span class="comment">% output:</span>
+            <span class="comment">%   C = [1, 1];</span>
+            <span class="comment">%   Bw = [0; 1];</span>
+            <span class="comment">%   model = PWAModel(@vanderpol_PWA_f,Partition,C,Bw,[0;0],eye(2));</span>
+            <span class="comment">%</span>
+            <span class="comment">% with function vanderpol_f defined below.</span>
+            <span class="comment">%   function xp = vanderpol_f(x, u,sys)</span>
+            <span class="comment">%     if nargin ~= 3</span>
+            <span class="comment">%         error('Invalid input !');</span>
+            <span class="comment">%     end</span>
+            <span class="comment">%</span>
+            <span class="comment">%     if size(x,1)~=2</span>
+            <span class="comment">%         error('Wrong size of x');</span>
+            <span class="comment">%     end</span>
+            <span class="comment">%     xp = zeros(size(x));</span>
+            <span class="comment">%</span>
+            <span class="comment">%     xp(1,:) = x(1,:) + sys.param.tau *x(2,:);</span>
+            <span class="comment">%     xp(2,:) = x(2,:)+ (-x(1,:) + (1-x(1,:).^2) .* x(2,:)) .* sys.param.tau + u;</span>
+            <span class="comment">%     end</span>
+            <span class="comment">%</span>
+            <span class="comment">% with Partition(i) defined below for i = 1</span>
+            <span class="comment">% Partition(1).Polyhedron = ([combvec([-3 -2.85], [-3, -2.85])]')</span>
+            <span class="comment">% Partition(1).Dynamics.A = [1 0; 0 1];</span>
+            <span class="comment">% Partition(1).Dynamics.a = [1; 1];</span>
+            <span class="comment">% Partition(1).Dynamics.B = [0;1];</span>
+            <span class="comment">% Partition(1).Dynamics.C = [1 0];</span>
+            <span class="comment">% Partition(1).Dynamics.D = 0;</span>
+            <span class="comment">% Partition(1).Dynamics.Bw = [0;1];</span>
+            <span class="comment">% Partition(1).Dynamics.dim = sysNonLin.dim;</span>
+            <span class="comment">%</span>
+            <span class="comment">% Copyright 2022 Birgit van Huijgevoort, b.c.v.huijgevoort@tue.nl</span>
+
+            obj.f=@PWA_f;
+            obj.Partition = Partition;
+            obj.C = C;
+            obj.Bw = Bw;
+            obj.mu = mu;
+            obj.sigma = sigma;
+            obj.dim = size(Bw, 1);
+            obj.Np = size(Partition,2);
+        <span class="keyword">end</span>
+
+        <span class="keyword">function</span> x_n = f_det(obj,x,u)
+            <span class="comment">%F_DET computes the next states undisturbed by noise</span>
+            <span class="comment">% The next state is based on the deterministic/nominal</span>
+            <span class="comment">% dynamics for a nonlinear model and is computed as</span>
+            <span class="comment">% x(t+1) = f(x(t),u(t))</span>
+            <span class="comment">%</span>
+            <span class="comment">% x_next = f_det(obj,x_current,u_current) computes the next</span>
+            <span class="comment">% state x_next based on x_current, u_current, and based on the</span>
+            <span class="comment">% model obj.</span>
+            x_n =   obj.f(x,u,obj);
+        <span class="keyword">end</span>
+
+        <span class="keyword">function</span> [x_n, varargout] = f_stoch(obj, x, u, Pr)
+            <span class="comment">%F_STOCH computes the next states disturbed by noise</span>
+            <span class="comment">% The next state is based on the stochastic</span>
+            <span class="comment">% dynamics for a PWA model and is computed as</span>
+            <span class="comment">% x(t+1) = A_i x(t) + B_i u(t) + Bw_i w(t) + a_i</span>
+            <span class="comment">% where w(t) is sampled at random from it's specified</span>
+            <span class="comment">% underlying distribution and i is the partition number</span>
+            <span class="comment">%</span>
+            <span class="comment">% x_next = f_stoch(obj, x_current, u_current, Partition number) computes the next</span>
+            <span class="comment">% state x_next based on x_current, u_current, partititon number  and based on the</span>
+            <span class="comment">% model obj.</span>
+
+            w = mvnrnd(obj.mu, obj.sigma, 1)'; <span class="comment">% Sample noise</span>
+
+            <span class="comment">% Get corresponding matrices</span>
+            A_i = obj.Partition(Pr).Dynamics.A;
+            B_i = obj.Partition(Pr).Dynamics.B;
+            Bw_i = obj.Partition(Pr).Dynamics.Bw;
+            a_i = obj.Partition(Pr).Dynamics.a;
+
+            <span class="comment">% Determine next state</span>
+            x_n = A_i*x + B_i*u + a_i + Bw_i*w;
+            varargout{1} = w;
+
+        <span class="keyword">end</span>
+
+        <span class="keyword">function</span> xp = PWA_f(x, u, sys)
+            xp = zeros(size(x));
+
+            <span class="keyword">for</span> l = 1:size(sys.Partition,2)
+                ind = find(sys.Partition(l).Polyhedron.contains(x));
+                xp(:,ind) = sys.Partition(l).Dynamics.A*x(:,ind)+ sys.Partition(l).Dynamics.B*u(ind);
+            <span class="keyword">end</span>
+        <span class="keyword">end</span>
+
+
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+</pre><p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2022a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+classdef PWAModel
+% PWAMODEL Class of piecewise-affine systems with noise on the transitions. 
+% Objects of this class define a piecewise-affine model with dynamics
+% x(t+1) = A_i x(t) + B_i u(t) + a_i + B_w w(t); y(t)   = C_i x(t), with i\in[1,Np]
+% that approximates the nonlinear model from NonLinModel with function f(x(t)).
+% Here, w(t) ~ N(mu, sigma), with N a normal distribution with mean mu
+% and sigma the noise variance. 
+%
+% Examples 
+% A simple 2 dimensional model with one control input and one
+% output:
+%   C = [1, 1]; 
+%   Bw = [0; 1]; 
+%   model = PWAModel(@vanderpol_PWA_f,Partition,C,Bw,[0;0],eye(2));
+%
+% with function vanderpol_f defined below.
+%   function xp = vanderpol_f(x, u,sys)
+%     if nargin ~= 3
+%         error('Invalid input !');
+%     end
+% 
+%     if size(x,1)~=2
+%         error('Wrong size of x');
+%     end
+%     xp = zeros(size(x));
+% 
+%     xp(1,:) = x(1,:) + sys.param.tau *x(2,:);
+%     xp(2,:) = x(2,:)+ (-x(1,:) + (1-x(1,:).^2) .* x(2,:)) .* sys.param.tau + u;
+%     end
+% 
+% with Partition(i) defined below for i = 1
+% Partition(1).Polyhedron = ([combvec([-3 -2.85], [-3, -2.85])]')
+% Partition(1).Dynamics.A = [1 0; 0 1];
+% Partition(1).Dynamics.a = [1; 1]; 
+% Partition(1).Dynamics.B = [0;1];
+% Partition(1).Dynamics.C = [1 0];
+% Partition(1).Dynamics.D = 0;
+% Partition(1).Dynamics.Bw = [0;1];
+% Partition(1).Dynamics.dim = sysNonLin.dim;
+%  
+% Copyright 2022 Birgit van Huijgevoort, b.c.v.huijgevoort@tue.nl
+    
+    properties
+        type = "PWA";
+        f % the deterministic function for the state update
+        Partition % struct containing the dynamics and polyhedrons of the partitions
+        C % C matrix to map from state to to output space
+        Bw % Bw matrix for the noise
+        Np % number of partitions
+        mu % noise mean
+        sigma % noise variance
+        dim  % the dimension of the state space
+        orig % original nonlinear model
+        N % number of partitions in each direction used to obtain PWA approximation
+        
+        X % state space
+        U % input space 
+        regions % regions labelled with atomic propositions
+        AP % atomic propositions
+        P % the probability transition matrix. (Class: TransitionProbability)
+        
+    end
+    
+    methods
+        function obj = PWAModel(Partition,C,Bw,mu,sigma)
+            %PWAMODEL Construct an instance of this class
+            %   Load all values f, Partition, C, ... as described in the
+            %   class file. 
+            %   model = PWAModel(f,Partition,C,Bw,mu,sigma) Loads model dynamics.
+            % 
+            % 
+            % Examples
+            % A simple 2 dimensional model with one control input and one
+            % output:
+            %   C = [1, 1]; 
+            %   Bw = [0; 1]; 
+            %   model = PWAModel(@vanderpol_PWA_f,Partition,C,Bw,[0;0],eye(2));
+            %
+            % with function vanderpol_f defined below.
+            %   function xp = vanderpol_f(x, u,sys)
+            %     if nargin ~= 3
+            %         error('Invalid input !');
+            %     end
+            % 
+            %     if size(x,1)~=2
+            %         error('Wrong size of x');
+            %     end
+            %     xp = zeros(size(x));
+            % 
+            %     xp(1,:) = x(1,:) + sys.param.tau *x(2,:);
+            %     xp(2,:) = x(2,:)+ (-x(1,:) + (1-x(1,:).^2) .* x(2,:)) .* sys.param.tau + u;
+            %     end
+            % 
+            % with Partition(i) defined below for i = 1
+            % Partition(1).Polyhedron = ([combvec([-3 -2.85], [-3, -2.85])]')
+            % Partition(1).Dynamics.A = [1 0; 0 1];
+            % Partition(1).Dynamics.a = [1; 1]; 
+            % Partition(1).Dynamics.B = [0;1];
+            % Partition(1).Dynamics.C = [1 0];
+            % Partition(1).Dynamics.D = 0;
+            % Partition(1).Dynamics.Bw = [0;1];
+            % Partition(1).Dynamics.dim = sysNonLin.dim;
+            %
+            % Copyright 2022 Birgit van Huijgevoort, b.c.v.huijgevoort@tue.nl
+
+            obj.f=@PWA_f;
+            obj.Partition = Partition;
+            obj.C = C;
+            obj.Bw = Bw;
+            obj.mu = mu;
+            obj.sigma = sigma;
+            obj.dim = size(Bw, 1);
+            obj.Np = size(Partition,2);
+        end
+
+        function x_n = f_det(obj,x,u)
+            %F_DET computes the next states undisturbed by noise 
+            % The next state is based on the deterministic/nominal
+            % dynamics for a nonlinear model and is computed as
+            % x(t+1) = f(x(t),u(t))
+            %
+            % x_next = f_det(obj,x_current,u_current) computes the next
+            % state x_next based on x_current, u_current, and based on the
+            % model obj. 
+            x_n =   obj.f(x,u,obj);
+        end
+
+        function [x_n, varargout] = f_stoch(obj, x, u, Pr)
+            %F_STOCH computes the next states disturbed by noise 
+            % The next state is based on the stochastic
+            % dynamics for a PWA model and is computed as
+            % x(t+1) = A_i x(t) + B_i u(t) + Bw_i w(t) + a_i
+            % where w(t) is sampled at random from it's specified
+            % underlying distribution and i is the partition number
+            %
+            % x_next = f_stoch(obj, x_current, u_current, Partition number) computes the next
+            % state x_next based on x_current, u_current, partititon number  and based on the
+            % model obj. 
+            
+            w = mvnrnd(obj.mu, obj.sigma, 1)'; % Sample noise
+              
+            % Get corresponding matrices
+            A_i = obj.Partition(Pr).Dynamics.A;
+            B_i = obj.Partition(Pr).Dynamics.B;
+            Bw_i = obj.Partition(Pr).Dynamics.Bw;
+            a_i = obj.Partition(Pr).Dynamics.a;
+
+            % Determine next state
+            x_n = A_i*x + B_i*u + a_i + Bw_i*w;
+            varargout{1} = w;
+            
+        end
+
+        function xp = PWA_f(x, u, sys)
+            xp = zeros(size(x));
+    
+            for l = 1:size(sys.Partition,2)
+                ind = find(sys.Partition(l).Polyhedron.contains(x));
+                xp(:,ind) = sys.Partition(l).Dynamics.A*x(:,ind)+ sys.Partition(l).Dynamics.B*u(ind);
+            end
+        end
+        
+        
+    end
+end
+
+##### SOURCE END #####
+--></body></html>

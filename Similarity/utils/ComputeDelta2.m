@@ -71,6 +71,18 @@ for i = 1:length(varargin)
     end
 end
 
+Nlambda = 100;
+for i = 1:length(varargin)
+    % try to find 'fast'
+    if strcmp(varargin{i},'fast')
+        const = varargin{i+1};
+        Nlambda = const*(100-10)+10;
+        break;
+    else
+        Nlambda = 100;
+    end
+end
+
 %%
 % system parameters
 A = sysLTI.A;
@@ -83,7 +95,7 @@ disturbSize = size(Bw, 2);
 
 deleps = []; % Delta-epsilon pairs
 Del = []; % Delta values
-lambda_v = linspace(0.9999, 0, 100);
+lambda_v = linspace(0.9999, 0, Nlambda);
 Lambda = []; % Corresponding lambda values
 R = []; % Corresponding values of r
 Kmin = [];

@@ -1,0 +1,416 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>PackageDelivery</title><meta name="generator" content="MATLAB 9.12"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2022-11-02"><meta name="DC.source" content="PackageDelivery.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h1></h1><!--introduction--><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Package delivery case study</a></li><li><a href="#2">Specify system and regions</a></li><li><a href="#3">Step 1 Translate the specification (or input DFA yourself)</a></li><li><a href="#4">Step 2 Finite-state abstraction</a></li><li><a href="#5">Step 3 Similarity quantification</a></li><li><a href="#6">Step 4 Synthesize a robust controller</a></li><li><a href="#7">Step 5 Control refinement</a></li><li><a href="#8">Step 6 Deployment</a></li><li><a href="#9">Show details on computation time and memory usage</a></li><li><a href="#10">Plot satisfaction probability</a></li></ul></div><h2 id="1">Package delivery case study</h2><p>Package delivery is a 2D LTI systems of the form x(t+1) = Ax(t) + Bu(t) + Bw w(t) y(t) = Cx(t) + Du(t) Be aware: Current implementation requires D = 0!</p><p>Expected runtime = approx 10 seconds</p><p>Authors: Oliver Sch&ouml;n, Birgit van Huijgevoort</p><pre class="codeinput">clc; clear; close <span class="string">all</span>;
+
+<span class="comment">% Add toolboxes to path</span>
+run <span class="string">Install.m</span>
+
+<span class="comment">% Track runtime</span>
+tStart = tic;
+disp(<span class="string">'Start package delivery benchmark'</span>)
+</pre><h2 id="2">Specify system and regions</h2><pre class="codeinput"><span class="comment">% Define system parameters</span>
+A = 0.9*eye(2);
+B = eye(2);
+C = eye(2);
+D = zeros(2);
+Bw = sqrt(0.2)*eye(2);
+dim = length(A);
+
+<span class="comment">% Specify mean and variance of disturbance w(t)</span>
+mu = zeros(dim, 1); <span class="comment">% Mean of disturbance</span>
+sigma = eye(dim); <span class="comment">% Variance of disturbance;</span>
+
+<span class="comment">% Set up an LTI model</span>
+sysLTI = LinModel(A, B, C, D, Bw, mu, sigma);
+
+<span class="comment">% Bounds on state space</span>
+x1l = -6; <span class="comment">% Lowerbound in x1</span>
+x1u = 6; <span class="comment">% Upperbound in x1</span>
+x2l = -6; <span class="comment">% Lowerbound in x2</span>
+x2u = 6; <span class="comment">% Upperbound in x2</span>
+<span class="comment">% Define bounded state space</span>
+sysLTI.X = Polyhedron(combvec([x1l, x1u], [x2l, x2u])');
+
+<span class="comment">% Bounds on  and input space</span>
+ul = [-1; -1]; <span class="comment">% Lowerbound input u</span>
+uu = [1; 1]; <span class="comment">% Upperbound input u</span>
+<span class="comment">% Define bounded input space</span>
+sysLTI.U = Polyhedron(combvec([ul(1), uu(1)], [ul(2), uu(2)])');
+
+<span class="comment">% Specify regions for the specification</span>
+<span class="comment">% Pick up a parcel at P1 and deliver it to P3. If on this path the agent passes</span>
+<span class="comment">% P2, it loses the package and has to pick up a new one (at P1).</span>
+
+<span class="comment">% 1) Pick-up region</span>
+p1x = [5 5 6 6 5]; <span class="comment">% x1-coordinates</span>
+p1y = [-1 1 1 -1 -1]; <span class="comment">% x2-coordinates</span>
+P1 = Polyhedron([p1x; p1y]');
+
+<span class="comment">% 2) Region where you lose package</span>
+p2x = [0 0 1 1 0]; <span class="comment">% x1-coordinates</span>
+p2y = [-5 1 1 -5 -5]; <span class="comment">% x2-coordinates</span>
+P2 = Polyhedron([p2x; p2y]');
+
+<span class="comment">% 3) Delivery region</span>
+p3x = [-4 -4 -2 -2 -4];    <span class="comment">% x1-coordinates</span>
+p3y = [-3 -4 -4 -3 -3];    <span class="comment">% x2-coordinates</span>
+P3 = Polyhedron([p3x; p3y]');
+
+sysLTI.regions = [P1; P2; P3]; <span class="comment">% regions that get specific atomic propositions</span>
+sysLTI.AP = {<span class="string">'p1'</span>, <span class="string">'p2'</span>, <span class="string">'p3'</span>}; <span class="comment">% with the corresponding atomic propositions</span>
+
+<span class="comment">%Plot_sysLTI(sysLTI)</span>
+</pre><h2 id="3">Step 1 Translate the specification (or input DFA yourself)</h2><pre class="codeinput">t1start = tic;
+
+<span class="comment">% Define the scLTL formula using syntax as in Specification/LTL2BA/README</span>
+formula = <span class="string">'F(p1 &amp; (!p2 U p3))'</span>;
+
+<span class="comment">% Translate the spec to a DFA</span>
+[DFA] = TranslateSpec(formula,sysLTI.AP);
+
+<span class="comment">% or specify DFA directly</span>
+<span class="comment">% act = {' ', 'p3', 'p2', 'p2p3', 'p1', 'p1p3', 'p1p2', 'p1p2p3'};</span>
+<span class="comment">%</span>
+<span class="comment">% trans = [ ...</span>
+<span class="comment">%     1, 1, 1, 1, 2, 2, 2, 2; ...</span>
+<span class="comment">%     2, 3, 1, 1, 2, 3, 1, 1; ...</span>
+<span class="comment">%     0, 0, 0, 0, 0, 0, 0, 0 ...</span>
+<span class="comment">%     ];</span>
+<span class="comment">%</span>
+<span class="comment">% DFA = struct( ...</span>
+<span class="comment">%     'S', [1 2 3], ...</span>
+<span class="comment">%     'S0', 1, ...</span>
+<span class="comment">%     'F', 3, ...</span>
+<span class="comment">%     'act', {act}, ...</span>
+<span class="comment">%     'trans', trans, ...</span>
+<span class="comment">%     'sink', find([0, 0]) ... % Empty double row vector</span>
+<span class="comment">%     );</span>
+
+t1end = toc(t1start);
+</pre><h2 id="4">Step 2 Finite-state abstraction</h2><pre class="codeinput">t2start = tic;
+
+<span class="comment">% Specify granularity of abstraction/gridding</span>
+lu = 3; <span class="comment">% Division of input space</span>
+lx1 = 400; <span class="comment">% Division of state space in x1-direction</span>
+lx2 = 400;<span class="comment">% Division of state space in x2-direction</span>
+
+<span class="comment">% Construct abstract input space uhat</span>
+uhat = GridInputSpace(lu,sysLTI.U); <span class="comment">% abstract input space</span>
+
+<span class="comment">% Construct finite-state abstraction</span>
+l = [lx1, lx2]; <span class="comment">% Number of grid cells in x1- and x2-direction</span>
+tol = 10^(-6);
+sysAbs = FSabstraction(sysLTI,uhat,l,tol,DFA,<span class="string">'TensorComputation'</span>,true);
+
+t2end = toc(t2start);
+</pre><h2 id="5">Step 3 Similarity quantification</h2><pre class="codeinput">t3start = tic;
+
+<span class="comment">% Choose a value for epsilon</span>
+epsilon = 0.075;
+
+<span class="comment">% Quantify similarity</span>
+rel = QuantifySim(sysLTI, sysAbs, epsilon);
+
+t3end = toc(t3start);
+</pre><h2 id="6">Step 4 Synthesize a robust controller</h2><pre class="codeinput">t4start = tic;
+
+thold = 1e-6;     <span class="comment">% threshold</span>
+
+<span class="comment">% Synthesize an abstract robust controller</span>
+[satProb, pol] = SynthesizeRobustController(sysAbs, DFA, rel, thold, false);
+
+t4end = toc(t4start);
+</pre><h2 id="7">Step 5 Control refinement</h2><pre class="codeinput">t5start = tic;
+
+<span class="comment">% Refine abstract controller to a continous-state controller</span>
+Controller = RefineController(satProb,pol,sysAbs,rel,sysLTI,DFA);
+
+t5end = toc(t5start);
+</pre><h2 id="8">Step 6 Deployment</h2><pre class="codeinput">t6start = tic;
+
+x0 = [-5;-5];
+N = 60;
+
+<span class="comment">% Simulate controlled system</span>
+[xsim, qsim] = ImplementController(x0, N, Controller);
+
+<span class="comment">% Show results</span>
+<span class="comment">%plotTrajectories(xsim, [x1l x1u; x2l x2u], sysLTI, 'DFAinfo', qsim);</span>
+
+t6end = toc(t6start);
+</pre><h2 id="9">Show details on computation time and memory usage</h2><pre class="codeinput">tEnd = toc(tStart);
+
+<span class="comment">% Display computation time per step and total.</span>
+disp(<span class="string">' '</span>)
+disp([<span class="string">'Step 1: '</span>, mat2str(t1end,3), <span class="string">' seconds'</span>])
+disp([<span class="string">'Step 2: '</span>, mat2str(t2end,3), <span class="string">' seconds'</span>])
+disp([<span class="string">'Step 3: '</span>, mat2str(t3end,3), <span class="string">' seconds'</span>])
+disp([<span class="string">'Step 4: '</span>, mat2str(t4end,3), <span class="string">' seconds'</span>])
+disp([<span class="string">'Step 5: '</span>, mat2str(t5end,3), <span class="string">' seconds'</span>])
+disp([<span class="string">'Step 6: '</span>, mat2str(t6end,3), <span class="string">' seconds'</span>])
+disp(<span class="string">' '</span>)
+disp([<span class="string">'Total runtime = '</span>, mat2str(tEnd,3), <span class="string">' seconds'</span>])
+disp(<span class="string">' '</span>)
+<span class="comment">% Display total memory usage</span>
+d = whos();
+Mem = sum([d.bytes]);
+Mem = Mem*1e-6; <span class="comment">% memory usage in Mb</span>
+
+disp([<span class="string">'Memory usage: '</span>, mat2str(Mem), <span class="string">' Mb'</span>])
+</pre><h2 id="10">Plot satisfaction probability</h2><pre class="codeinput">plotSatProb(satProb, sysAbs, <span class="string">'initial'</span>, DFA);
+
+disp(<span class="string">'Finished package delivery benchmark'</span>)
+</pre><p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2022a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%%% Package delivery case study
+%
+% Package delivery is a 2D LTI systems of the form
+% x(t+1) = Ax(t) + Bu(t) + Bw w(t)
+% y(t) = Cx(t) + Du(t)
+% Be aware: Current implementation requires D = 0!
+%
+% Expected runtime = approx 10 seconds
+% 
+% Authors: Oliver Schön, Birgit van Huijgevoort
+
+clc; clear; close all;
+
+% Add toolboxes to path
+run Install.m
+
+% Track runtime
+tStart = tic;
+disp('Start package delivery benchmark')
+
+%% Specify system and regions
+
+% Define system parameters
+A = 0.9*eye(2);
+B = eye(2);
+C = eye(2);
+D = zeros(2);
+Bw = sqrt(0.2)*eye(2);
+dim = length(A);
+
+% Specify mean and variance of disturbance w(t) 
+mu = zeros(dim, 1); % Mean of disturbance
+sigma = eye(dim); % Variance of disturbance;
+
+% Set up an LTI model
+sysLTI = LinModel(A, B, C, D, Bw, mu, sigma);
+ 
+% Bounds on state space 
+x1l = -6; % Lowerbound in x1
+x1u = 6; % Upperbound in x1
+x2l = -6; % Lowerbound in x2
+x2u = 6; % Upperbound in x2
+% Define bounded state space
+sysLTI.X = Polyhedron(combvec([x1l, x1u], [x2l, x2u])');
+
+% Bounds on  and input space
+ul = [-1; -1]; % Lowerbound input u
+uu = [1; 1]; % Upperbound input u
+% Define bounded input space
+sysLTI.U = Polyhedron(combvec([ul(1), uu(1)], [ul(2), uu(2)])');
+
+% Specify regions for the specification
+% Pick up a parcel at P1 and deliver it to P3. If on this path the agent passes 
+% P2, it loses the package and has to pick up a new one (at P1).
+
+% 1) Pick-up region
+p1x = [5 5 6 6 5]; % x1-coordinates
+p1y = [-1 1 1 -1 -1]; % x2-coordinates
+P1 = Polyhedron([p1x; p1y]');
+
+% 2) Region where you lose package
+p2x = [0 0 1 1 0]; % x1-coordinates
+p2y = [-5 1 1 -5 -5]; % x2-coordinates
+P2 = Polyhedron([p2x; p2y]');
+
+% 3) Delivery region
+p3x = [-4 -4 -2 -2 -4];    % x1-coordinates
+p3y = [-3 -4 -4 -3 -3];    % x2-coordinates  
+P3 = Polyhedron([p3x; p3y]');
+
+sysLTI.regions = [P1; P2; P3]; % regions that get specific atomic propositions
+sysLTI.AP = {'p1', 'p2', 'p3'}; % with the corresponding atomic propositions
+
+%Plot_sysLTI(sysLTI)
+%% Step 1 Translate the specification (or input DFA yourself)
+t1start = tic;
+
+% Define the scLTL formula using syntax as in Specification/LTL2BA/README
+formula = 'F(p1 & (!p2 U p3))';
+
+% Translate the spec to a DFA
+[DFA] = TranslateSpec(formula,sysLTI.AP);
+
+% or specify DFA directly
+% act = {' ', 'p3', 'p2', 'p2p3', 'p1', 'p1p3', 'p1p2', 'p1p2p3'};
+% 
+% trans = [ ...
+%     1, 1, 1, 1, 2, 2, 2, 2; ...
+%     2, 3, 1, 1, 2, 3, 1, 1; ...
+%     0, 0, 0, 0, 0, 0, 0, 0 ...
+%     ];
+% 
+% DFA = struct( ...
+%     'S', [1 2 3], ...
+%     'S0', 1, ...
+%     'F', 3, ...
+%     'act', {act}, ...
+%     'trans', trans, ...
+%     'sink', find([0, 0]) ... % Empty double row vector
+%     );
+
+t1end = toc(t1start);
+%% Step 2 Finite-state abstraction
+t2start = tic;
+
+% Specify granularity of abstraction/gridding
+lu = 3; % Division of input space
+lx1 = 400; % Division of state space in x1-direction
+lx2 = 400;% Division of state space in x2-direction
+
+% Construct abstract input space uhat
+uhat = GridInputSpace(lu,sysLTI.U); % abstract input space
+
+% Construct finite-state abstraction
+l = [lx1, lx2]; % Number of grid cells in x1- and x2-direction
+tol = 10^(-6);
+sysAbs = FSabstraction(sysLTI,uhat,l,tol,DFA,'TensorComputation',true);
+
+t2end = toc(t2start);
+%% Step 3 Similarity quantification
+t3start = tic;
+
+% Choose a value for epsilon
+epsilon = 0.075;
+ 
+% Quantify similarity
+rel = QuantifySim(sysLTI, sysAbs, epsilon);
+
+t3end = toc(t3start);
+%% Step 4 Synthesize a robust controller
+t4start = tic;
+
+thold = 1e-6;     % threshold
+
+% Synthesize an abstract robust controller
+[satProb, pol] = SynthesizeRobustController(sysAbs, DFA, rel, thold, false);
+
+t4end = toc(t4start);
+%% Step 5 Control refinement
+t5start = tic;
+
+% Refine abstract controller to a continous-state controller
+Controller = RefineController(satProb,pol,sysAbs,rel,sysLTI,DFA);
+
+t5end = toc(t5start);
+%% Step 6 Deployment
+t6start = tic;
+
+x0 = [-5;-5];
+N = 60;
+
+% Simulate controlled system
+[xsim, qsim] = ImplementController(x0, N, Controller);
+
+% Show results
+%plotTrajectories(xsim, [x1l x1u; x2l x2u], sysLTI, 'DFAinfo', qsim);
+
+t6end = toc(t6start);
+%% Show details on computation time and memory usage
+tEnd = toc(tStart);
+
+% Display computation time per step and total.
+disp(' ')
+disp(['Step 1: ', mat2str(t1end,3), ' seconds'])
+disp(['Step 2: ', mat2str(t2end,3), ' seconds'])
+disp(['Step 3: ', mat2str(t3end,3), ' seconds'])
+disp(['Step 4: ', mat2str(t4end,3), ' seconds'])
+disp(['Step 5: ', mat2str(t5end,3), ' seconds'])
+disp(['Step 6: ', mat2str(t6end,3), ' seconds'])
+disp(' ')
+disp(['Total runtime = ', mat2str(tEnd,3), ' seconds']) 
+disp(' ')
+% Display total memory usage
+d = whos();
+Mem = sum([d.bytes]);
+Mem = Mem*1e-6; % memory usage in Mb
+
+disp(['Memory usage: ', mat2str(Mem), ' Mb'])
+
+%% Plot satisfaction probability
+plotSatProb(satProb, sysAbs, 'initial', DFA);
+
+disp('Finished package delivery benchmark')
+##### SOURCE END #####
+--></body></html>

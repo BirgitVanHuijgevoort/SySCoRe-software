@@ -1,427 +1,207 @@
-%%% Building_automation case study
+%%% Building Automation System (BAS) case study
+% Including model order reduction
+% 7D model reduced to a 2D model using model-order reduction
+% author: Birgit van Huijgevoort
+%
+% Expected runtime = approx 120 seconds
+%
 % sysLTI -> original model
 % sysLTIr -> reduced order model
-%
-%% Case study: Model with large number of continuous variables
-% author: Birgit
-% author of 7D model: Nathalie Cauchi
-% -------------------------------------------------------
-% x_c[k+1] = A_cx_c[k] + B_cu_c[k] +F_cd_c[k] + Q_c
-% y_c[k]   = [1 0 0 0 0 0 0]
-% x_c = [T_z1 T_z2 T_w5 T_w6 T_w2 T_w3 T_w7]^T
-% u_c = T_sa
-% d_c =[T_out T_hall CO2_1 CO2_2 T_rw,r1 T_rw,r2]^T
-% -------------------------------------------------------
-% -------------------------------------------------------
 
 clear;close all;
 
 run Install.m
 
 tStart = tic;
+disp('Start building automation system benchmark')
 
-% Load parameters needed to build model
-BASmodel = load('BASmodel.mat');
-Z1m = BASmodel.Z1m;
-Qc = BASmodel.Qc;
+%% Specify system parameters of 7-dimensional model and regions
 
-%% Specify parameters of 7-dimensional model
-A = Z1m.A;
-B = Z1m.B;
-C = Z1m.C;
-D = zeros(1,1);
-Bw = Z1m.F(:,1:6);
-dim = Z1m.dim;
+% Load model into sysLTI, with affine-term a
+BASmodel
 
-mu = [9;15;500;500;35;35]; % mean of disturbance
-sigma = [1, zeros(1,5); 0, 1, zeros(1,4); 0, 0 , 100, zeros(1,3);
-                0,0,0,100,zeros(1,2); zeros(1,4), 5, 0;
-                zeros(1,5), 5];% variance of disturbance
-
-% Transform model, such that w comes from Gaussian distribution with mean 0
-% and variance eye().
-Bw = Bw*sigma^(1/2);
-Qc = Qc+Bw*mu;
-mu = zeros(6,1);
-sigma = eye(6);
-
-% input bounds
+% Define input bounds
 ul = 15;
 uu = 30;
 
-% Work with system with state x-xss and output y-C*xss
-sysLTI = LinModel(A,B,C,D,Bw,mu,sigma);
+% Define state space bounds 
+x1l = 19.5; % Lowerbound x1
+x1u = 20.5; % Upperbound x1
+x2l = 10;   % Lowerbound x2
+x2u = 20;   % Upperbound x2
+LowerBounds = [x1l;x2l;zeros(5,1)];
+UpperBounds = [x1u;x2u;30*ones(5,1)];
 
-% Remove Qc by looking at steady state solution
-uss = (uu-ul)/2+ul;
-uss = 15;
-xss = -inv(A-eye(dim))*(B*uss+Qc);
+% Transform model, such that w comes from Gaussian distribution with mean 0
+% and variance identity
+[sysLTI, a] = NormalizeDisturbance(sysLTI,a);
+
+% Since the original dynamics are of an affine system, we will transform
+% the system to an LTI system by adjusting the state and output wrt a
+% steady state value xss.
+% In other words, we remove affine term a by looking at a
+% steady state solution xss and obtain a new system with state x-xss and
+% output y-C*xss
+
+% Choose steady state values
+uss = ul;
+xss = -inv(A-eye(dim))*(B*uss+a);
 
 % New bounds on input space (u-uss)
 ul = ul-uss;     % Lowerbound input u
 uu = uu-uss;     % Upperbound input u
+
+% Define bounded input space
 sysLTI.U = Polyhedron(combvec([ul(1),uu(1)])');
 
-% Specify division of input space for actuation and feedback
-ula = -0.6*((uu-ul)/2)+((uu-ul)/2)+ul;   % part of input for actuation R*uhat, with R=1
-uua = 0.6*((uu-ul)/2)+((uu-ul)/2)+ul;
-ulf = -0.175*((uu-ul)/2);   % part of input for feedback K(x-P*xhat)
-uuf = 0.175*((uu-ul)/2);
+% Compute new bounds on state space (x-xss)
+x1l = x1l-xss(1);   
+x1u = x1u-xss(1);  
+x2l = x2l-xss(2);   
+x2u = x2u-xss(2);   
+% Define bounded state space
+sysLTI.X = Polyhedron('lb', LowerBounds-xss, 'ub', UpperBounds-xss);
 
-% New bounds on state space (x-xss)
-x1l = 19.5-xss(1);   % Lowerbound x1
-x1u = 20.5-xss(1);   % Upperbound x1
-x2l = 19-xss(2);   % Lowerbound x2
-x2u = 22-xss(2);   % Upperbound x2
-x3l = 18-xss(3);   % Lowerbound x3
-x3u = 22-xss(3);   % Upperbound x3
-x4l = 18-xss(4);   % Lowerbound x4
-x4u = 22-xss(4);   % Upperbound x4
-x5l = 18-xss(5);   % Lowerbound x5
-x5u = 22-xss(5);   % Upperbound x5
-x6l = 18-xss(6);   % Lowerbound x6
-x6u = 22-xss(6);   % Upperbound x6
-x7l = 18-xss(7);   % Lowerbound x7
-x7u = 22-xss(7);   % Upperbound x7
-Xbound = [x1l, x1u; x2l, x2u; x3l, x3u; x4l, x4u; x5l, x5u; x6l, x6u; x7l x7u];
-sysLTI.X = Polyhedron(combvec([x1l,x1u],[x2l,x2u],[x3l,x3u],[x4l,x4u],[x5l,x5u],[x6l,x6u],[x7l,x7u])');
+% Specify region for the specification
+P1 = Polyhedron(combvec([x1l,x1u])');
 
-% Specify regions for the specification
-P1 = Polyhedron(combvec([x1l,x1u],[-100,100],[-100,100],[-100,100],[-100,100],[-100,100],[-100,100])');
+% Region that get specific atomic proposition
+sysLTI.regions = [P1];
+% Proposition corresponding to the region
+sysLTI.AP = {'p1'};
 
-%% Reduced order model
-f = 0.098;
-dimr = 2;
-[sysLTIr,F] = ModelReduction(sysLTI,dimr,f);
+% Select interface function for MOR, u = ur + Qxr + K(x-Pxr)
+int_f = 1;
+% Interface function between reduced-order model and finite-state
+% abstraction is automatically set to default, ur = uhat
 
-% Make sure that the reduced model has first state as output (C=[1 0])
-if sysLTIr.C(1)~= 1
-    % flip outputs
-    T2  = [0 1; 1 0];
-    
-    % set to 1
-    T=eye(length(sysLTIr.C));
-    T(length(sysLTIr.C),length(sysLTIr.C))= sysLTIr.C(end);
-    
-    % state transformation
-    sysLTIr.A = T2*T*sysLTIr.A*inv(T)*inv(T2);
-    sysLTIr.C = sysLTIr.C*inv(T)*inv(T2);
-    BBw= T2*T*[sysLTIr.B, sysLTIr.Bw];
-    sysLTIr.B = BBw(:,1);
-    sysLTIr.Bw = BBw(:,2:end);
-end
+%% Step 1 Translate the specification for the original model
+t1start = tic;
 
-% Compute P and Q
-[P, Q, R] = ComputeProjection(sysLTI,sysLTIr);
+N = 6; % (finite) time horizon of spec
 
-% Bounds on state space
-x1l = x1l;   % Lowerbound x1
-x1u = x1u;   % Upperbound x1
+% Define the scLTL specification
+formula = '(p1 & X p1 & X X p1 & X X X p1 & X X X X p1 & X X X X X p1)';
 
-% Compute state space bounds of reduced-order model
-Ax = [];
-bx = [];
-for i = 1:2^dim
-    xv = sysLTI.X.V(i,:)';
+% Translate the spec to a DFA
+[DFA] = TranslateSpec(formula, sysLTI.AP);
 
-    for j = 1:dim
-        if P(j,2)>=0
-            Axi(2*(j-1)+1,:) = [0 -P(j,2)];
-            Axi(2*j,:) = [P(j,2) 0];
-            bxi(2*(j-1)+1,1) = [-xv(j)+P(j,1)*x1u];
-            bxi(2*j,1) = [xv(j)-P(j,1)*x1l];
-        else
-            Axi(2*(j-1)+1,:) = [0 P(j,2)];
-            Axi(2*j,:) = [-P(j,2) 0];
-            bxi(2*(j-1)+1,1) = [xv(j)-P(j,1)*x1u];
-            bxi(2*j,1) = [-xv(j)+P(j,1)*x1l];
-        end
-    end
+t1end = toc(t1start);
+%% Step 2b Model order reduction
+t2start = tic;
 
-    Ax = [Ax; Axi];
-    bx = [bx; bxi];
-end
+f = 0.098;  % tuning parameter for feedback-matrix F
+dimr = 2; % desired dimension of reduced-order model
+% Construct reduced-order model
+[sysLTIr, ~] = ModelReduction(sysLTI,dimr,f);
 
-xhatBound = linprog([-1;1], Ax,bx);
-if ~isempty(xhatBound)
-    x2l = xhatBound(1);   
-    x2u = xhatBound(2);   
-end
+% Compute projection matrix P and Q for interface function
+% u = ur + Qxr + K(x-Pxr) and add them to sysLTIr
+sysLTIr = ComputeProjection(sysLTI,sysLTIr);
 
+% Define bounded state space of reduced-order model
 sysLTIr.X = Polyhedron(combvec([x1l,x1u],[x2l,x2u])');
-
+% Define bounded input space of reduced-order model
 sysLTIr.U = sysLTI.U;
 
-%% Specify output region
-% Specify regions for the specification
-TSP = 20-xss(1);               % temperature set point
-p1x = [19.5-xss(1) 20.5-xss(1)  20.5-xss(1) 19.5-xss(1) 19.5-xss(1)];    % x1-coordinates
-p1y = [-100 -100 100 100 -100];    % x2-coordinates
-p1 = [p1x; p1y];        % goal region
-P1r = Polyhedron(p1x(1:2)');
+% Regions that get specific atomic propositions
+sysLTIr.regions = [P1];
 
-sysLTIr.regions = [P1r]; % regions that get specific atomic propositions
-sysLTIr.AP = {'p1'}; % with the corresponding atomic propositions
+% Propositions corresponding to the regions
+sysLTIr.AP = {'p1'};
 
-%% Synthesize scLTL formula (or input DFA yourself)
-N = 6;
-formula = '(p1 & X p1 & X X p1 & X X X p1 & X X X p1 & X X X X p1 & X X X X X p1)';
-[DFA] = TranslateSpec(formula, sysLTIr.AP);
+%% Step 2 Finite-state abstraction
 
-%% Reduce State space
-[~, output_set] = IncreaseDecreasePolytope(P1r, 0.1);
-[sysLTIr,~] = ReduceX(sysLTIr, [ula(1),uua(1)], output_set, 'invariance', 5);
+% Construct abstract input space
+lu = 3;  % number of abstract inputs in each direction
+[uhat,sysLTIr.U] = GridInputSpace(lu,sysLTIr.U,'interface',int_f,0.6,0.175); % abstract input space
 
-%% Construct abstract model by gridding it
-disp('start gridding');tic
+% Reduce the state space to speed up computations [option only available for invariance specs]
+[sysLTIr,~] = ReduceX(sysLTIr, sysLTIr.U{2}, P1, 'invariance', 5);
 
-lu = 3;
-uhat = combvec(linspace(ula(1),uua(1),lu));
-
-l = [3000*3000];  % number of grid cells in x1- and x2-direction
+% Construct finite-state abstraction
+l = [3000*3000];  % total number of grid cells
 tol=10^-6;
-sysAbs = Gridding(sysLTIr,uhat,l,tol,'TensorComputation',true);
-l = sysAbs.l;% load updated l
-% Save some extra system parameters into struct
-sysAbs.orig = sysLTIr;
+sysAbs = FSabstraction(sysLTIr,uhat,l,tol,DFA,'TensorComputation',true);
 
-label = zeros(1,prod(l));
-[label(1:prod(l))] = deal(1);
-inP1 = inpolygon(sysAbs.states(1,:),sysAbs.states(2,:),p1x,p1y);
-[label(inP1)] = deal(2);
-sysAbs.labels = label;
+t2end = toc(t2start);
+%% Step 3 Similarity quantification
+t3start = tic;
 
-toc
-disp(['---> finished gridding in ', num2str(toc), ' seconds.'])
-%% Compute delta based on epsilon
-
-% Compute polytope 
-beta = sysAbs.beta;
-Uhat = Polyhedron(sysAbs.inputs');
-
-Wlb = sysLTIr.mu-3*sum(sysLTIr.sigma,2);
-Wub = sysLTIr.mu+3*sum(sysLTIr.sigma,2);
-Wset = Polyhedron('lb', Wlb, 'ub', Wub);
-
-% Compute additional error, by truncating the disturbance
-onemindel = mvncdf(Wlb,Wub,mu,sigma);
-del_trunc = 1-onemindel;
-
-Z = (sysLTI.B*R-P*sysLTIr.B)*Uhat+(sysLTI.Bw-P*sysLTIr.Bw)*Wset;
-Zred = Z;
-Zred = Z.minVRep();
-
-% [OPTIONAL] This function computes the bounds for epsilon (takes a lot of time)
-% epsilonBounds = [eps_max,eps_min]
-% [epsilonBounds] = ComputeEpsilonBoundsMOR(sysLTI,sysLTIr,mu,sigma,uuf,Zred,P)
-epsilonBounds = [0.2413, 0.0520]; 
-
-epsilon_1 = epsilonBounds(1);
-if epsilon_1>=epsilonBounds(2) && epsilon_1<=epsilonBounds(1)
-    disp('Feasible epsilon chosen')
-elseif epsilon_1>epsilonBounds(1)
-    disp('Epsilon is larger then necessary')
-elseif epsilon_1<=epsilonBounds(2)
-    disp('Infeasible epsilon chosen')
-end
-
-disp('start computing simulation relation');tic
+% set values of epsilon
+epsilon_1 = 0.2413; % output deviation for MOR simulation relation
+epsilon_2 = 0.1087; % output deviation for gridding simulation relation
 
 % Compute MOR simulation relation
-[delta_1, D_1, K_1, F_1] = ComputeDelta_intPQRK(epsilon_1,sysLTI,sysLTIr,mu,sigma,uuf,Zred,P);
-del = delta_1;
-delta_1 = delta_1+del_trunc;
+[rel_1, K, kernel] = QuantifySim(sysLTI, sysLTIr, epsilon_1, 'MOR', sysAbs);
 
 % Compute gridding simulation relation
-epsilon_2 = max(0.35-epsilon_1,0);
-[delta_2, D_2, K_2] = ComputeDelta(epsilon_2,sysLTIr,sysLTIr.mu,sysLTIr.sigma,beta);
+[rel_2] = QuantifySim(sysLTIr, sysAbs, epsilon_2);
 
-delta = delta_1+delta_2;
-epsilon = epsilon_1+epsilon_2;
+% Combine simulation relations
+rel = CombineSimRel(rel_1, rel_2, sysLTIr, sysAbs);
 
-rel_1 = SimRel(epsilon_1,delta_1,D_1);
-rel_2 = SimRel(epsilon_2,delta_2,D_2);
-rel = rel_1.Combine(rel_2,sysLTIr.X);
-disp(['delta = ', num2str(rel.delta), ', epsilon = ', num2str(rel.epsilon) ])
+t3end = toc(t3start);
+%% Step 4 Synthesize a robust controller
+t4start = tic;
 
-toc
-disp('---> finished computing simulation relation')
+thold = 1e-6;
+% Synthesize an abstract robust controller
+[satProb, pol] = SynthesizeRobustController(sysAbs,DFA,rel,thold,false);
 
-rel.NonDetLabels  = NonDeterministicLabelling(sysAbs.outputs, sysLTIr.regions, rel);
-%rel.NonDetLabels  = NonDeterministicLabelling(sysAbs.outputs, sysLTIr.regions, rel, 'Efficient', sysAbs);
+t4end = toc(t4start);
+%% Step 5 Control refinement
+t5start = tic;
 
+% Refine abstract controller to a continous-state controller
+Controller = RefineController(satProb,pol,sysAbs,rel,sysLTIr,DFA,int_f,K);
 
-%% Synthesize controller
-disp('---> Start Value iteration')
-[V,pol]  = SynthesizeRobustController(sysAbs,DFA,rel,N,false);
+t5end = toc(t5start);
+%% Step 6 Deployment
+t6start = tic;
 
-q = DFA.S0;
-% Fix Value at initial q0 based on labeling
-for i = 1:size(sysAbs.labels,2)
-    if sysAbs.labels(i) == 2
-        V(q,i) = V(q,i);
-    else
-        V(q,i) = 0;
-    end
-end
+% Supply an initial state for the LTI system (x_LTI = x_affine - xss)
+[i,j] = max(satProb(DFA.S0,:));
+xr0 = sysAbs.states(:,j);
+% alternative: xr0 = sysLTIr.X.chebyCenter.x
+x0 = sysLTIr.P*xr0;
 
-% Determine computation time
+% Simulate controlled system Ns times
+Ns = 6;
+xsim = ImplementController(x0, N, Controller, Ns, 'MOR', sysLTIr, kernel);
+
+% Plot resulting trajectories
+%plotTrajectories(xsim, [LowerBounds UpperBounds], sysLTI, 'shift', xss);
+
+t6end = toc(t6start);
+%% Show details on computation time and memory usage
 tEnd = toc(tStart);
 
-X1 = reshape(sysAbs.states(1,:),l)+xss(1);
-X2 = reshape(sysAbs.states(2,:),l)+xss(2);
+% Display computation time per step and total.
+disp(' ')
+disp(['Step 1: ', mat2str(t1end,3), ' seconds'])
+disp(['Step 2: ', mat2str(t2end,3), ' seconds'])
+disp(['Step 3: ', mat2str(t3end,3), ' seconds'])
+disp(['Step 4: ', mat2str(t4end,3), ' seconds'])
+disp(['Step 5: ', mat2str(t5end,3), ' seconds'])
+disp(['Step 6: ', mat2str(t6end,3), ' seconds'])
+disp(' ')
+disp(['Total runtime = ', mat2str(tEnd,3), ' seconds']) 
+disp(' ')
+% Display total memory usage
+d = whos();
+Mem = sum([d.bytes]);
+Mem = Mem*1e-6; % memory usage in Mb
 
-VC = reshape(V(q,:),l);
+disp(['Memory usage: ', mat2str(Mem), ' Mb'])
+
+%% Show satisfaction probability plot 
 
 % Plot satisfaction probability
-figure;
-surf(X1(1:15:end,1:15:end),X2(1:15:end,1:15:end),VC(1:15:end,1:15:end),'EdgeColor','interp')
-xlabel('x_{r1}', 'FontSize', 16)
-ylabel('x_{r2}', 'FontSize', 16)
-view(2)
-a = get(gca,'XTickLabel');
-set(gca,'XTickLabel',a,'FontName','Times','fontsize',16)
+plotSatProb(satProb, sysAbs, 'initial', DFA, 'shift', xss, 'MOR');
+%%% This plot shows that satifaction probability of the reduced-order model 
+% compensated with a steady shift of [xss(1);xss(2)]
+% to translate the state in this Figure [xr1;xr2] to the corresponding state of the
+% affine system, use x0 = sysLTIr.P*[xr1-xss(1);xr2-xss(2)]+xss
 
-%% Start simulation
-YSIM = [];
-USIM = [];
-[i,j] = max(V(DFA.S0,:));
-xr0 = sysAbs.states(:,j);
-x0 = P*xr0;
-
-% run the simulation 6 times
-for l = 1:6 
-    xsim = [x0];
-    xrsim = [xr0];
-
-    q = DFA.S0;
-        if P1r.contains(sysLTIr.C*xr0)
-            label = 2;
-        else
-            label = 1;
-        end
-    q_next = DFA.trans(q,label);
-
-    % find initial abstract state, look at xr0
-    diff = abs(xr0.*ones(1,size(sysAbs.states,2))-sysAbs.states);
-    dis = sqrt(sum(diff.^2,1));
-    [~,j] = min(dis);
-
-    xhat0 = sysAbs.states(:,j);
-    xhatsim = [xhat0];
-
-    % satisfaction probability of this initial state
-    SatProp = V(q,j);
-    disp(['Value function at x0 equals ', mat2str(SatProp,4),])
-
-    uhat = pol(:,j, q_next);
-    indexing = 1:length(sysAbs.states);
-
-    ursim = [];
-    usim = [];
-    q = q_next;
-    for i = 1:N
-        disp(['x = ', mat2str(xsim(:,i)+xss,4), ',    q^+ = ',num2str(q_next)])    % compute next continuous state
-
-        if q ==DFA.F
-            disp("satisfied specification")
-            break;
-        elseif q == DFA.sink
-            disp("failed specification")
-            break;
-        end
-        w = mvnrnd(sysLTIr.mu,sysLTIr.sigma)';
-
-        u = R*uhat + Q*xrsim(:,i) + K_1*(xsim(:,i)-P*xrsim(:,i));
-        ur = uhat;
-        ursim = [ursim, ur];
-        usim = [usim, u];
-
-        xnext = sysLTI.A*xsim(:,i)+sysLTI.B*u+sysLTI.Bw*w;
-        xsim = [xsim, xnext];
-
-        wr = w+F_1*(xsim(:,i)-P*xrsim(:,i));
-        xrnext = sysLTIr.A*xrsim(:,i)+sysLTIr.B*ur+sysLTIr.Bw*wr;
-        xrsim = [xrsim, xrnext];
-
-        if P1.contains(xsim(:,end)) 
-            label = 2;
-        elseif xsim(1,end)>=19.5-xss(1) && xsim(1,end)<=20.5-xss(1)
-            label = 2;
-        else
-            label = 1;
-        end
-        q_next = DFA.trans(q,label);
-
-        % find next abstract state, by looking at the maximizer in R wrt the value
-        % function. 
-
-        diff2 = abs(xrsim(:,end).*ones(1,size(sysAbs.states,2))-sysAbs.states);
-        inR2 = (([1 1]*((D_2^.5*diff2).^2)).^.5)<=epsilon_2;
-        inR = inR2;
-        indices_valid = indexing(inR);
-        V_q = V(q_next,:);
-        [value_max, index_aux] = max(V_q(inR));
-        j = indices_valid(index_aux); % find maximizing index of abstract state
-        xhatnext = sysAbs.states(:,j);
-        xhatsim = [xhatsim, xhatnext];
-
-        uhat = [pol(:,j,q_next)];
-
-        q = q_next;
-
-    end
-    
-    % compute output
-    y = C*xsim+C*xss;
-    usim_ss = usim+uss;
-    
-    YSIM = [YSIM; y];
-    USIM = [USIM; usim_ss];
-    
-end
-
-%% plot results
-
-figure;
-subplot(2,1,1)
-plot(y(1,:))
-hold on
-plot(y(1,:),'bo')
-plot(1:N,19.5*ones(1,N),'r--')
-plot(1:N,20.5*ones(1,N),'r--')
-title('State evolution')
-
-subplot(2,1,2)
-plot(usim+uss);
-hold on
-plot(usim+uss,'bo')
-title('Input')
-
-k = 0:5;
-figure;
-plot(k,YSIM')
-hold on
-plot(0:N-1,19.5*ones(1,N),'r--')
-plot(0:N-1,20.5*ones(1,N),'r--')
-title('State evolution')
-
-%% Display execution time 
-% end time is before simulation part
-disp(['Total runtime = ', mat2str(tEnd)])
-
-%% Verify input bound
-Qx = Q*sysLTIr.X;
-Qx = Qx.minVRep();
-
-u_lb = ula+ulf+min(Qx.V);
-u_ub = uua+uuf+max(Qx.V);
-
-% use only (abstract) states with V>0
-[~,j] = find(V(DFA.S0,:)>0);
-XX = sysAbs.states(:,j);
-
-u_lb2 = ula+ulf+min(Q*XX);
-u_ub2 = uua+uuf+max(Q*XX);
-
-disp(['Input is between ', mat2str(u_lb2+uss,4), ' and ', mat2str(u_ub2+uss,4)])
+disp('Finished building automation system benchmark')

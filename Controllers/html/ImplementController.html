@@ -1,0 +1,306 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>ImplementController</title><meta name="generator" content="MATLAB 9.12"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2022-11-02"><meta name="DC.source" content="ImplementController.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#3">Initialization</a></li><li><a href="#4">Start simulation</a></li></ul></div><pre class="codeinput"><span class="keyword">function</span> [XSIM, QSIM] = ImplementController(x0, N, Controller, nTraj, varargin)
+</pre><pre class="codeinput"><span class="comment">%IMPLEMENTCONTROLLER Simulates the controlled system initialized at x0</span>
+<span class="comment">%</span>
+<span class="comment">% xsim = ImplementController(x0, N, Controller); gives the state trajectory</span>
+<span class="comment">% xsim starting at x0 and ending at x(N-1) by simulating the model connected to the Controller</span>
+<span class="comment">%</span>
+<span class="comment">% to obtain multiple (nTraj) state trajectories use</span>
+<span class="comment">% xsim = ImplementController(x0, N, Controller, nTraj)</span>
+<span class="comment">%</span>
+<span class="comment">% to also obtain the trajectory of the DFA state use</span>
+<span class="comment">% [xsim, qsim] = ImplementController(x0, N, Controller, nTraj);</span>
+<span class="comment">%</span>
+<span class="comment">% for model-order reduction use ImplementController(x0, N, Controller, nTraj,</span>
+<span class="comment">% 'MOR', sysLTIr, kernel);</span>
+<span class="comment">%</span>
+<span class="comment">% Inputs</span>
+<span class="comment">% ------</span>
+<span class="comment">% x0 = initial state for simulation</span>
+<span class="comment">% N = number of time steps (time horizon)</span>
+<span class="comment">% Controller = struct of the controller constructed using the class RefineController</span>
+<span class="comment">% nTraj = number of trajectories to simulate (default/unspecified = 1)</span>
+<span class="comment">%</span>
+<span class="comment">% Outputs</span>
+<span class="comment">% -------</span>
+<span class="comment">% XSIM = states obtained during simulation. XSIM{i} corresponds to the i-th</span>
+<span class="comment">% trajectory and is a matrix of size jxk, with j the state dimension and k</span>
+<span class="comment">% the time horizon N. The states are given in order of time, [x(0),x(1),</span>
+<span class="comment">% x(2), ... x(N-1)]</span>
+<span class="comment">% QSIM = states of the DFA obtained furing simulation. Same structure as</span>
+<span class="comment">% XSIM.</span>
+<span class="comment">%</span>
+<span class="comment">% Options (varargin)</span>
+<span class="comment">% -------</span>
+<span class="comment">% 'MOR' - let the program know that moder-order reduction has been used.</span>
+<span class="comment">% 'MOR' should be followed by the reduced-order system and the kernel.</span>
+<span class="comment">%</span>
+<span class="comment">% Copyright 2022 Birgit van Huijgevoort b.c.v.huijgevoort@tue.nl</span>
+</pre><h2 id="3">Initialization</h2><pre class="codeinput">disp(<span class="string">'&lt;---- Start deployment'</span>);
+
+MOR = false;
+<span class="comment">% Check if MOR is given as an input</span>
+<span class="keyword">for</span> i = 1:length(varargin)
+    <span class="comment">% try to find 'MOR'</span>
+    <span class="keyword">if</span> strcmp(varargin{i}, <span class="string">'MOR'</span>)
+        MOR = true;
+        <span class="keyword">if</span> MOR
+            Controller.MOR = true;
+            sysLTIr = varargin{i+1};
+            Controller.P = sysLTIr.P;
+            Controller.Q = sysLTIr.Q;
+            Controller.F = varargin{i+2};
+        <span class="keyword">end</span>
+        <span class="keyword">break</span>
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+
+<span class="keyword">if</span> nargin == 3
+    nTraj = 1;
+<span class="keyword">end</span>
+</pre><h2 id="4">Start simulation</h2><p>Loop to generate nTraj unique trajectories</p><pre class="codeinput">XSIM = cell(nTraj, 1);
+QSIM = cell(nTraj, 1);
+<span class="keyword">for</span> iTraj = 1:nTraj
+    <span class="keyword">if</span> MOR
+        xsim = x0; <span class="comment">% Initial state</span>
+        <span class="comment">% Compute reduced order initial state</span>
+        Dr = Controller.simRel.R{1}.R; <span class="comment">% weigthing matrix for sim rel between original and reduced-order model</span>
+        xr0 = (inv(sysLTIr.P'*Dr*sysLTIr.P))*sysLTIr.P'*Dr*x0;  <span class="comment">% Compute suitable value for xr0 (least square optimal solution of min ||x0-P*xr0||_Dr \leq \epsilon)</span>
+        xrsim = xr0; <span class="comment">% Initial state (reduced)</span>
+    <span class="keyword">else</span>
+        xsim = x0; <span class="comment">% Initial state</span>
+    <span class="keyword">end</span>
+
+    q_0 = Controller.initDFA(xsim);
+    qsim = q_0; <span class="comment">% Initial DFA state</span>
+
+    <span class="comment">% Start simulating</span>
+    <span class="keyword">for</span> i = 1:N
+        <span class="comment">% Compute next state</span>
+        <span class="keyword">if</span> MOR
+            [xrnext, qnext, u, xnext] = Controller.EvolveSys(xrsim(:, end), qsim(end), xsim(:, end));
+            xrsim = [xrsim, xrnext];
+        <span class="keyword">else</span>
+            [xnext, qnext, u] = Controller.EvolveSys(xsim(:, end), qsim(end));
+        <span class="keyword">end</span>
+        xsim = [xsim, xnext];
+        qsim = [qsim, qnext];
+
+        <span class="comment">% Check whether specification satisfied or violated</span>
+        <span class="keyword">if</span> qsim(end) == Controller.DFA.F
+            fprintf(<span class="string">"Satisfaction after %d time steps.\n"</span>, i)
+            <span class="keyword">break</span>
+        <span class="keyword">elseif</span> qsim(end) == Controller.DFA.sink
+            fprintf(<span class="string">"Specification violated after %d time steps.\n"</span>, i)
+            <span class="keyword">break</span>
+        <span class="keyword">end</span>
+    <span class="keyword">end</span>
+
+    XSIM{iTraj} = xsim;
+    QSIM{iTraj} = qsim;
+
+    <span class="comment">% Check whether specification satisfied</span>
+    <span class="keyword">if</span> qsim(end) ~= Controller.DFA.F
+        fprintf(<span class="string">"Simulation finished after %d time steps without satisfying.\n"</span>, i)
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+
+<span class="comment">% Return matrix if only one trajectory is requested</span>
+<span class="keyword">if</span> nTraj == 1
+    XSIM = XSIM{:};
+    QSIM = QSIM{:};
+<span class="keyword">end</span>
+
+disp(<span class="string">'----&gt; Finish deployment'</span>);
+</pre><pre class="codeinput"><span class="keyword">end</span>
+</pre><p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2022a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+function [XSIM, QSIM] = ImplementController(x0, N, Controller, nTraj, varargin)
+%IMPLEMENTCONTROLLER Simulates the controlled system initialized at x0
+%
+% xsim = ImplementController(x0, N, Controller); gives the state trajectory
+% xsim starting at x0 and ending at x(N-1) by simulating the model connected to the Controller
+%
+% to obtain multiple (nTraj) state trajectories use 
+% xsim = ImplementController(x0, N, Controller, nTraj)
+%
+% to also obtain the trajectory of the DFA state use 
+% [xsim, qsim] = ImplementController(x0, N, Controller, nTraj);
+%
+% for model-order reduction use ImplementController(x0, N, Controller, nTraj,
+% 'MOR', sysLTIr, kernel);
+%
+% Inputs
+% REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH
+% x0 = initial state for simulation
+% N = number of time steps (time horizon)
+% Controller = struct of the controller constructed using the class RefineController
+% nTraj = number of trajectories to simulate (default/unspecified = 1)
+% 
+% Outputs
+% REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH-
+% XSIM = states obtained during simulation. XSIM{i} corresponds to the i-th
+% trajectory and is a matrix of size jxk, with j the state dimension and k
+% the time horizon N. The states are given in order of time, [x(0),x(1),
+% x(2), ... x(N-1)]
+% QSIM = states of the DFA obtained furing simulation. Same structure as
+% XSIM.
+%
+% Options (varargin)
+% REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH-
+% 'MOR' - let the program know that moder-order reduction has been used.
+% 'MOR' should be followed by the reduced-order system and the kernel.
+%
+% Copyright 2022 Birgit van Huijgevoort b.c.v.huijgevoort@tue.nl
+
+%% Initialization
+disp('<REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH Start deployment');
+
+MOR = false;
+% Check if MOR is given as an input
+for i = 1:length(varargin)
+    % try to find 'MOR'
+    if strcmp(varargin{i}, 'MOR')
+        MOR = true;
+        if MOR
+            Controller.MOR = true;
+            sysLTIr = varargin{i+1};
+            Controller.P = sysLTIr.P;
+            Controller.Q = sysLTIr.Q;
+            Controller.F = varargin{i+2};
+        end
+        break
+    end
+end
+
+if nargin == 3
+    nTraj = 1;
+end
+
+%% Start simulation
+% Loop to generate nTraj unique trajectories
+XSIM = cell(nTraj, 1);
+QSIM = cell(nTraj, 1);
+for iTraj = 1:nTraj
+    if MOR
+        xsim = x0; % Initial state
+        % Compute reduced order initial state
+        Dr = Controller.simRel.R{1}.R; % weigthing matrix for sim rel between original and reduced-order model
+        xr0 = (inv(sysLTIr.P'*Dr*sysLTIr.P))*sysLTIr.P'*Dr*x0;  % Compute suitable value for xr0 (least square optimal solution of min ||x0-P*xr0||_Dr \leq \epsilon)
+        xrsim = xr0; % Initial state (reduced)
+    else
+        xsim = x0; % Initial state
+    end
+
+    q_0 = Controller.initDFA(xsim);
+    qsim = q_0; % Initial DFA state
+
+    % Start simulating
+    for i = 1:N
+        % Compute next state
+        if MOR
+            [xrnext, qnext, u, xnext] = Controller.EvolveSys(xrsim(:, end), qsim(end), xsim(:, end));
+            xrsim = [xrsim, xrnext];
+        else
+            [xnext, qnext, u] = Controller.EvolveSys(xsim(:, end), qsim(end));
+        end
+        xsim = [xsim, xnext];
+        qsim = [qsim, qnext];
+
+        % Check whether specification satisfied or violated
+        if qsim(end) == Controller.DFA.F
+            fprintf("Satisfaction after %d time steps.\n", i)
+            break
+        elseif qsim(end) == Controller.DFA.sink
+            fprintf("Specification violated after %d time steps.\n", i)
+            break
+        end
+    end
+
+    XSIM{iTraj} = xsim;
+    QSIM{iTraj} = qsim;
+
+    % Check whether specification satisfied
+    if qsim(end) ~= Controller.DFA.F
+        fprintf("Simulation finished after %d time steps without satisfying.\n", i)
+    end
+end
+
+% Return matrix if only one trajectory is requested
+if nTraj == 1
+    XSIM = XSIM{:};
+    QSIM = QSIM{:};
+end
+
+disp('REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH> Finish deployment');
+end
+##### SOURCE END #####
+--></body></html>

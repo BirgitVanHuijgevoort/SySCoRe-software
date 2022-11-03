@@ -63,7 +63,7 @@ str2=[char(10), 'never {'];    %second string for match (end of interesting "zon
 %remove from beginning until line contained by str1 (including it), and
 %from beginning of str2 to end
 r([1:findstr(r,str2)+length(str2)])=[];
-disp(r)
+%disp(r)
 
 % we have a string like: "state x
 %                         p1 -> state_label . . . state accept_** . . . "

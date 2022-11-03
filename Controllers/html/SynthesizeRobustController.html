@@ -1,0 +1,562 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>SynthesizeRobustController</title><meta name="generator" content="MATLAB 9.12"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2022-11-02"><meta name="DC.source" content="SynthesizeRobustController.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#3">Init</a></li><li><a href="#4">Perform value iteration</a></li><li><a href="#5">Compute satisfaction probability</a></li><li><a href="#6">Compute optimal policy</a></li></ul></div><pre class="codeinput"><span class="keyword">function</span> [satProb_lb, pol, varargout] = SynthesizeRobustController( <span class="keyword">...</span>
+    sysAbs, DFA, rel, thold, varargin)
+</pre><pre class="codeinput"><span class="comment">%SynthesizeRobustController synthesizes a control policy and computes</span>
+<span class="comment">% the corresponding robust satisfaction probability</span>
+<span class="comment">%</span>
+<span class="comment">% Use [satProb_lb, pol] = SynthesizeRobustController(sysAbs, DFA, rel) to</span>
+<span class="comment">% obtain a satisfaction probablity (lowerbound) and policy.</span>
+<span class="comment">%</span>
+<span class="comment">% To change the threshold for convergence use for example</span>
+<span class="comment">% thold = 1e-6;</span>
+<span class="comment">% [satProb_lb, pol] = SynthesizeRobustController(sysAbs, DFA, rel, thold)</span>
+<span class="comment">%</span>
+<span class="comment">% To only compute the satisfaction probability for the initial DFA state</span>
+<span class="comment">% use [satProb_lb, pol] = SynthesizeRobustController(sysAbs, DFA, rel, [], true)</span>
+<span class="comment">%</span>
+<span class="comment">% Inputs</span>
+<span class="comment">% ------</span>
+<span class="comment">% sysAbs = abstract finite-state system</span>
+<span class="comment">% DFA = deterministic finite-state automaton</span>
+<span class="comment">% rel = simulation relation</span>
+<span class="comment">% N = maximum number of iterations for value iteration</span>
+<span class="comment">%</span>
+<span class="comment">% Outputs</span>
+<span class="comment">% --------</span>
+<span class="comment">% satProp = robust satisfaction probability = lowerbound on actual</span>
+<span class="comment">% satisfaction probability.</span>
+<span class="comment">% satProp(i,j) is satisfaction probability for DFA state i and initial</span>
+<span class="comment">% abstract state sysAbs.states(:,j).</span>
+<span class="comment">% pol = abstract control policy.</span>
+<span class="comment">% pol(:,i,j) is optimal abstract input for state (xhat,q) with</span>
+<span class="comment">% xhat = sysAbs.states(:,i) and q = DFA.S(j)</span>
+<span class="comment">%</span>
+<span class="comment">% Options (varargin)</span>
+<span class="comment">% -------</span>
+<span class="comment">% 'initialonly' = true/false. Default is false. If it is set to true, this</span>
+<span class="comment">% function only computes the value function and satisfaction probability for the initial DFA state</span>
+<span class="comment">% 'antagonist_pol' = true/false. Default is false.  This option will explicitly compute the</span>
+<span class="comment">% policy with which the worst-case labels are chosen [Warning not fully</span>
+<span class="comment">% tested]. This will lead to an extra output:</span>
+<span class="comment">% [satProp,pol,a_pol] = SynthesizeRobustController(sysAbs,DFA,rel, N, 0, 1)</span>
+<span class="comment">% 'upperBound' = true/false. Default is false.  This option will compute the</span>
+<span class="comment">% upper bound on the satisfaction probability in addition to the lower bound</span>
+<span class="comment">% [Warning not fully tested]. This will lead to an extra output:</span>
+<span class="comment">% [satProp,pol,a_pol,satProb_ub] = SynthesizeRobustController(sysAbs,DFA,rel, N, 0, 1, 1) or</span>
+<span class="comment">% [satProp,pol,satProb_ub] = SynthesizeRobustController(sysAbs,DFA,rel, N, 0, 0, 1)</span>
+<span class="comment">%</span>
+<span class="comment">% Copyright 2022 Sofie Haesaert s.haesaert@tue.nl, Birgit van Huijgevoort</span>
+<span class="comment">% b.c.v.huijgevoort@tue.nl, Oliver Schoen o.schoen2@newcastle.ac.uk</span>
+<span class="comment">%</span>
+<span class="comment">% References:</span>
+<span class="comment">% Haesaert, Sofie, and Sadegh Soudjani. "Robust dynamic programming for temporal</span>
+<span class="comment">% logic control of stochastic systems." IEEE Transactions on Automatic Control (2020).</span>
+</pre><h2 id="3">Init</h2><pre class="codeinput">checkDFAact(DFA) <span class="comment">% Check validity of DFA.act</span>
+
+disp(<span class="string">'&lt;---- Start synthesizing a robust controller'</span>);
+
+<span class="comment">% Set default value for thold if it is not given</span>
+<span class="keyword">if</span> nargin&lt;4
+    thold = 1e-12;
+<span class="keyword">end</span>
+<span class="keyword">if</span> isempty(thold)
+    thold = 1e-12;
+<span class="keyword">end</span>
+
+<span class="keyword">if</span> nargin&gt;=5
+    <span class="keyword">if</span> islogical(varargin{1})
+        initialonly = varargin{1};
+    <span class="keyword">else</span>
+        error([<span class="string">'5th input argument should be true/false for '</span> <span class="keyword">...</span>
+            <span class="string">'the output of the value function and policy '</span> <span class="keyword">...</span>
+            <span class="string">'for initial (discrete) state only'</span>])
+    <span class="keyword">end</span>
+<span class="keyword">else</span>
+    initialonly = false;
+<span class="keyword">end</span>
+
+<span class="keyword">if</span> nargin&gt;=6
+    <span class="keyword">if</span> islogical(varargin{2})
+        antagonist_pol = varargin{2};
+    <span class="keyword">else</span>
+        error([<span class="string">'6th input argument should be true/false for '</span> <span class="keyword">...</span>
+            <span class="string">'the computation of the counter strategy of the labeling'</span>])
+    <span class="keyword">end</span>
+<span class="keyword">else</span>
+    antagonist_pol = false;
+<span class="keyword">end</span>
+
+<span class="keyword">if</span> nargin&gt;=7
+    <span class="keyword">if</span> islogical(varargin{3})
+        upperBound = varargin{3};
+    <span class="keyword">else</span>
+        error([<span class="string">'7th input argument should be true/false for '</span> <span class="keyword">...</span>
+            <span class="string">'the computation of the upper bound on the satisfaction probability'</span>])
+    <span class="keyword">end</span>
+<span class="keyword">else</span>
+    upperBound = false;
+<span class="keyword">end</span>
+</pre><h2 id="4">Perform value iteration</h2><pre class="codeinput">N = 500; <span class="comment">%maximum number of iterations performed.</span>
+uhat = sysAbs.inputs;
+delta = rel.delta;
+outputs2act = rel.NonDetLabels;
+nS = length(DFA.S);
+nX = length(sysAbs.states);
+
+<span class="comment">% Initialise value function</span>
+<span class="comment">% V(i,j) is the probability of reaching F from DFA state i and abstract state</span>
+<span class="comment">% sysAbs.states(:,j)</span>
+V_lb = zeros(nS,nX);
+<span class="keyword">if</span> upperBound
+    V_ub = zeros(nS,nX);
+<span class="keyword">end</span>
+DFA_Active = setdiff(setdiff(DFA.S,DFA.F), DFA.sink);
+Converged = ones(1, nS); <span class="comment">% create a vector with</span>
+Converged(DFA_Active)=deal(0);
+
+V_lb(DFA.F,:) = ones(nX,1); <span class="comment">% Set V to 1 for DFA state q = F</span>
+<span class="keyword">if</span> upperBound
+    V_ub(DFA.F,:) = ones(nX,1); <span class="comment">% Set V to 1 for DFA state q = F</span>
+<span class="keyword">end</span>
+tic
+
+<span class="comment">% Prepare DFA transitions for all states states</span>
+trans = ones(nS,nS,nX);
+<span class="keyword">for</span> i = DFA_Active
+    <span class="keyword">for</span> l = 1: size(outputs2act,1)
+        trans(i, DFA.trans(i, l), :) = min( <span class="keyword">...</span>
+            shiftdim(trans(i, DFA.trans(i, l), :), 1), <span class="keyword">...</span>
+            1 - outputs2act(l, :));
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+trans = 10 * trans;
+
+
+<span class="keyword">for</span> k = 1:N
+    <span class="comment">% Stop iterating when all values are converged</span>
+    <span class="keyword">if</span> min(Converged) == 1
+        disp(<span class="string">'Convergence reached!'</span>)
+        disp([<span class="string">'Number of iteration required, k='</span>, num2str(k)])
+        <span class="keyword">break</span>;
+    <span class="keyword">end</span>
+
+    <span class="keyword">for</span> i = DFA_Active(end:-1:1) <span class="comment">% for each discrete mode</span>
+        <span class="comment">% check if mode has converged</span>
+        <span class="keyword">if</span> min([Converged(DFA.trans(i, :)), Converged(i)]) == 1
+            <span class="keyword">continue</span>
+        <span class="keyword">else</span>
+            Converged(i)= 0;
+
+            <span class="comment">% Choose the correct states out of V based on the DFA</span>
+            V_sort = min(max(squeeze(trans(i, :, :)), V_lb));
+
+            <span class="comment">% Compute probability of stepping to sink state for upper bound</span>
+            P_sink = 1 - ones(1, nX) * sysAbs.P;
+
+            <span class="comment">% Compute value function for each action uhat</span>
+            VVlb = V_sort * sysAbs.P; <span class="comment">% P is an object of the TensorTransitionProbability class</span>
+            <span class="keyword">if</span> upperBound
+                VVub = VVlb + P_sink;
+            <span class="keyword">end</span>
+
+            <span class="comment">% Optimize over uhat and subtract delta</span>
+            V_n_lb = max(VVlb, [], 2) - delta;
+            <span class="keyword">if</span> upperBound
+                V_n_ub = max(VVub, [], 2) + delta;
+            <span class="keyword">end</span>
+
+            <span class="comment">% Make sure that value function is between 0 and 1</span>
+            V_n_lb = min(1, max(0, V_n_lb));
+            <span class="keyword">if</span> upperBound
+                V_n_ub = min(1, max(0, V_n_ub));
+            <span class="keyword">end</span>
+
+            <span class="keyword">if</span> min([Converged(DFA.trans(i, :))]) == 1
+                Converged(i) = 1;
+            <span class="keyword">elseif</span> max(max(abs(V_n_lb' - V_lb(i, :)))) &lt; thold
+                Converged(i) = 1;
+            <span class="keyword">end</span>
+            V_lb(i, :) = V_n_lb;
+            <span class="keyword">if</span> upperBound
+                V_ub(i, :) = V_n_ub;
+            <span class="keyword">end</span>
+
+        <span class="keyword">end</span>
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+</pre><h2 id="5">Compute satisfaction probability</h2><pre class="codeinput"><span class="keyword">if</span> initialonly == true
+    <span class="comment">% Determine correct q_0 for abstract states</span>
+    satProb_lb = V_lb((0:length(V_lb)-1)*nS + DFA.trans(DFA.S0, sysAbs.labels));
+    <span class="keyword">if</span> upperBound
+        satProb_ub = V_ub((0:length(V_ub)-1)*nS + DFA.trans(DFA.S0, sysAbs.labels));
+    <span class="keyword">end</span>
+<span class="keyword">else</span>
+    satProb_lb = V_lb;
+    <span class="keyword">if</span> upperBound
+        satProb_ub = V_ub;
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+</pre><h2 id="6">Compute optimal policy</h2><pre class="codeinput">pol = zeros(size(uhat, 1), nX, nS);
+a_pol = zeros(size(uhat, 1), nX, nS);
+
+<span class="keyword">for</span> i = DFA_Active
+    <span class="comment">%q_old = DFA.S(i);</span>
+
+    <span class="comment">% Choose the correct states out of V based on the DFA</span>
+    <span class="keyword">if</span> antagonist_pol
+        [V_sort, a_pol] = min(max(squeeze(trans(i, :,:)),V_lb));
+
+    <span class="keyword">else</span>
+        V_sort = min(max(squeeze(trans(i, :,:)),V_lb));
+    <span class="keyword">end</span>
+
+    <span class="comment">% Initialise value iteration with including action uhat.</span>
+    VVlb = V_sort*sysAbs.P; <span class="comment">% P is a object of the transition_probability class.</span>
+
+    [~,index_pol] = max(VVlb,[],2);   <span class="comment">% optimize over uhat</span>
+    pol(:,:,i) = uhat(:,index_pol);
+
+<span class="keyword">end</span>
+
+<span class="keyword">if</span> initialonly==true
+
+    <span class="comment">% Determine correct q_0 for abstract states</span>
+    policy = zeros(size(uhat,1),length(sysAbs.states));
+    <span class="keyword">for</span> i = 1:length(sysAbs.states)
+        policy(:,i) = pol(:,i,DFA.trans(DFA.S0,sysAbs.labels(i)));
+    <span class="keyword">end</span>
+    pol = policy;
+
+<span class="keyword">end</span>
+
+<span class="keyword">if</span> antagonist_pol
+    varargout{end+1} = a_pol;
+<span class="keyword">end</span>
+<span class="keyword">if</span> upperBound
+    varargout{end+1} = satProb_ub;
+<span class="keyword">end</span>
+
+disp(<span class="string">'----&gt; Finish synthesizing a robust controller'</span>);
+</pre><pre class="codeinput"><span class="keyword">end</span>
+</pre><p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2022a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+function [satProb_lb, pol, varargout] = SynthesizeRobustController( ...
+    sysAbs, DFA, rel, thold, varargin)
+%SynthesizeRobustController synthesizes a control policy and computes
+% the corresponding robust satisfaction probability
+%
+% Use [satProb_lb, pol] = SynthesizeRobustController(sysAbs, DFA, rel) to
+% obtain a satisfaction probablity (lowerbound) and policy. 
+%
+% To change the threshold for convergence use for example 
+% thold = 1e-6;
+% [satProb_lb, pol] = SynthesizeRobustController(sysAbs, DFA, rel, thold)
+%
+% To only compute the satisfaction probability for the initial DFA state
+% use [satProb_lb, pol] = SynthesizeRobustController(sysAbs, DFA, rel, [], true)
+%
+% Inputs
+% REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH
+% sysAbs = abstract finite-state system
+% DFA = deterministic finite-state automaton
+% rel = simulation relation
+% N = maximum number of iterations for value iteration
+% 
+% Outputs
+% REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH
+% satProp = robust satisfaction probability = lowerbound on actual
+% satisfaction probability. 
+% satProp(i,j) is satisfaction probability for DFA state i and initial
+% abstract state sysAbs.states(:,j).
+% pol = abstract control policy.
+% pol(:,i,j) is optimal abstract input for state (xhat,q) with
+% xhat = sysAbs.states(:,i) and q = DFA.S(j)
+%
+% Options (varargin)
+% REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH-
+% 'initialonly' = true/false. Default is false. If it is set to true, this
+% function only computes the value function and satisfaction probability for the initial DFA state
+% 'antagonist_pol' = true/false. Default is false.  This option will explicitly compute the
+% policy with which the worst-case labels are chosen [Warning not fully
+% tested]. This will lead to an extra output:
+% [satProp,pol,a_pol] = SynthesizeRobustController(sysAbs,DFA,rel, N, 0, 1)
+% 'upperBound' = true/false. Default is false.  This option will compute the
+% upper bound on the satisfaction probability in addition to the lower bound 
+% [Warning not fully tested]. This will lead to an extra output:
+% [satProp,pol,a_pol,satProb_ub] = SynthesizeRobustController(sysAbs,DFA,rel, N, 0, 1, 1) or
+% [satProp,pol,satProb_ub] = SynthesizeRobustController(sysAbs,DFA,rel, N, 0, 0, 1)
+%
+% Copyright 2022 Sofie Haesaert s.haesaert@tue.nl, Birgit van Huijgevoort
+% b.c.v.huijgevoort@tue.nl, Oliver Schoen o.schoen2@newcastle.ac.uk
+%
+% References:
+% Haesaert, Sofie, and Sadegh Soudjani. "Robust dynamic programming for temporal
+% logic control of stochastic systems." IEEE Transactions on Automatic Control (2020).
+
+%% Init
+checkDFAact(DFA) % Check validity of DFA.act
+
+disp('<REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH Start synthesizing a robust controller');
+
+% Set default value for thold if it is not given
+if nargin<4
+    thold = 1e-12;
+end
+if isempty(thold)
+    thold = 1e-12;
+end
+
+if nargin>=5
+    if islogical(varargin{1})
+        initialonly = varargin{1};
+    else
+        error(['5th input argument should be true/false for ' ...
+            'the output of the value function and policy ' ...
+            'for initial (discrete) state only'])
+    end
+else
+    initialonly = false;
+end
+
+if nargin>=6
+    if islogical(varargin{2})
+        antagonist_pol = varargin{2};
+    else
+        error(['6th input argument should be true/false for ' ...
+            'the computation of the counter strategy of the labeling'])
+    end
+else
+    antagonist_pol = false;
+end
+
+if nargin>=7
+    if islogical(varargin{3})
+        upperBound = varargin{3};
+    else
+        error(['7th input argument should be true/false for ' ...
+            'the computation of the upper bound on the satisfaction probability'])
+    end
+else
+    upperBound = false;
+end
+
+%% Perform value iteration
+N = 500; %maximum number of iterations performed.  
+uhat = sysAbs.inputs;
+delta = rel.delta;
+outputs2act = rel.NonDetLabels;
+nS = length(DFA.S);
+nX = length(sysAbs.states);
+
+% Initialise value function
+% V(i,j) is the probability of reaching F from DFA state i and abstract state
+% sysAbs.states(:,j)
+V_lb = zeros(nS,nX);
+if upperBound
+    V_ub = zeros(nS,nX);
+end
+DFA_Active = setdiff(setdiff(DFA.S,DFA.F), DFA.sink);
+Converged = ones(1, nS); % create a vector with
+Converged(DFA_Active)=deal(0);
+
+V_lb(DFA.F,:) = ones(nX,1); % Set V to 1 for DFA state q = F
+if upperBound
+    V_ub(DFA.F,:) = ones(nX,1); % Set V to 1 for DFA state q = F
+end
+tic
+
+% Prepare DFA transitions for all states states
+trans = ones(nS,nS,nX);
+for i = DFA_Active
+    for l = 1: size(outputs2act,1)
+        trans(i, DFA.trans(i, l), :) = min( ...
+            shiftdim(trans(i, DFA.trans(i, l), :), 1), ...
+            1 - outputs2act(l, :));
+    end
+end
+trans = 10 * trans;
+
+
+for k = 1:N
+    % Stop iterating when all values are converged
+    if min(Converged) == 1
+        disp('Convergence reached!')
+        disp(['Number of iteration required, k=', num2str(k)])
+        break;
+    end
+
+    for i = DFA_Active(end:-1:1) % for each discrete mode
+        % check if mode has converged
+        if min([Converged(DFA.trans(i, :)), Converged(i)]) == 1
+            continue
+        else
+            Converged(i)= 0;
+
+            % Choose the correct states out of V based on the DFA
+            V_sort = min(max(squeeze(trans(i, :, :)), V_lb));
+
+            % Compute probability of stepping to sink state for upper bound
+            P_sink = 1 - ones(1, nX) * sysAbs.P;
+
+            % Compute value function for each action uhat
+            VVlb = V_sort * sysAbs.P; % P is an object of the TensorTransitionProbability class
+            if upperBound
+                VVub = VVlb + P_sink;
+            end
+
+            % Optimize over uhat and subtract delta
+            V_n_lb = max(VVlb, [], 2) - delta;
+            if upperBound
+                V_n_ub = max(VVub, [], 2) + delta;
+            end
+
+            % Make sure that value function is between 0 and 1
+            V_n_lb = min(1, max(0, V_n_lb));
+            if upperBound
+                V_n_ub = min(1, max(0, V_n_ub));
+            end
+
+            if min([Converged(DFA.trans(i, :))]) == 1
+                Converged(i) = 1;
+            elseif max(max(abs(V_n_lb' - V_lb(i, :)))) < thold
+                Converged(i) = 1;
+            end
+            V_lb(i, :) = V_n_lb;
+            if upperBound
+                V_ub(i, :) = V_n_ub;
+            end
+
+        end
+    end
+end
+
+
+%% Compute satisfaction probability
+if initialonly == true
+    % Determine correct q_0 for abstract states
+    satProb_lb = V_lb((0:length(V_lb)-1)*nS + DFA.trans(DFA.S0, sysAbs.labels));
+    if upperBound
+        satProb_ub = V_ub((0:length(V_ub)-1)*nS + DFA.trans(DFA.S0, sysAbs.labels));
+    end
+else
+    satProb_lb = V_lb;
+    if upperBound
+        satProb_ub = V_ub;
+    end
+end
+
+%% Compute optimal policy
+pol = zeros(size(uhat, 1), nX, nS);
+a_pol = zeros(size(uhat, 1), nX, nS);
+
+for i = DFA_Active
+    %q_old = DFA.S(i);
+
+    % Choose the correct states out of V based on the DFA
+    if antagonist_pol
+        [V_sort, a_pol] = min(max(squeeze(trans(i, :,:)),V_lb));
+
+    else
+        V_sort = min(max(squeeze(trans(i, :,:)),V_lb));
+    end
+
+    % Initialise value iteration with including action uhat.
+    VVlb = V_sort*sysAbs.P; % P is a object of the transition_probability class.
+
+    [~,index_pol] = max(VVlb,[],2);   % optimize over uhat
+    pol(:,:,i) = uhat(:,index_pol);
+
+end
+
+if initialonly==true
+
+    % Determine correct q_0 for abstract states
+    policy = zeros(size(uhat,1),length(sysAbs.states));
+    for i = 1:length(sysAbs.states)
+        policy(:,i) = pol(:,i,DFA.trans(DFA.S0,sysAbs.labels(i)));
+    end
+    pol = policy;
+
+end
+
+if antagonist_pol
+    varargout{end+1} = a_pol;
+end
+if upperBound
+    varargout{end+1} = satProb_ub;
+end
+
+disp('REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH> Finish synthesizing a robust controller');
+end
+
+
+##### SOURCE END #####
+--></body></html>

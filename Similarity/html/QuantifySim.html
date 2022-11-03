@@ -1,0 +1,523 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>QuantifySim</title><meta name="generator" content="MATLAB 9.12"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2022-11-02"><meta name="DC.source" content="QuantifySim.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#3">Check mu and sigma</a></li><li><a href="#4">Set options</a></li><li><a href="#5">no MOR</a></li><li><a href="#6">MOR</a></li></ul></div><pre class="codeinput"><span class="keyword">function</span> [simRel, interface, varargout] = QuantifySim(sys, sysAbs, epsilon, varargin)
+</pre><pre class="codeinput"><span class="comment">% QUANTIFYSIM Quantify the similarity between a continuous-state (sys) and abstract (finite-state or reduced-order) model (sysAbs)</span>
+<span class="comment">% using simulation relation R = {(xhat,x) | ||x-xhat||_D \leq epsilon}</span>
+<span class="comment">%</span>
+<span class="comment">% Inputs:</span>
+<span class="comment">% -------</span>
+<span class="comment">% sys = original system</span>
+<span class="comment">% sysAbs = abstract system</span>
+<span class="comment">% epsilon = output deviation ||y-yhat|| \leq \epsilon</span>
+<span class="comment">%</span>
+<span class="comment">% Outputs:</span>
+<span class="comment">% -------</span>
+<span class="comment">% simRel = simulation relation</span>
+<span class="comment">% interface = interface function. For PWA systems interface equals sys with</span>
+<span class="comment">% added field Kf for the interface function u=uhat+Kf(x-xhat)</span>
+<span class="comment">%</span>
+<span class="comment">% Options (= varargin)</span>
+<span class="comment">% --------</span>
+<span class="comment">% 'interface' - specify the interface function by following 'interface'</span>
+<span class="comment">% with 0, or 1. Here 0. (default) u=uhat, 1. u=uhat+K(x-xhat)</span>
+<span class="comment">% Example:</span>
+<span class="comment">% QuantifySim(sys, sysAbs, 0.3, 'interface', 1)</span>
+<span class="comment">% see Tutorials/VanderPol for full example</span>
+<span class="comment">%</span>
+<span class="comment">% 'weighting' - specify the states used to compute weigthing matrix D for simulation relation R</span>
+<span class="comment">% Example:</span>
+<span class="comment">% D = [1 0; 0 1];</span>
+<span class="comment">% QuantifySim(sys, sysAbs, 0.3, 'weighting', D)</span>
+<span class="comment">% see Tutorials/VanderPol for full example</span>
+<span class="comment">%</span>
+<span class="comment">% 'MOR' - Quantify the similarity between a full-order and reduced-order model.</span>
+<span class="comment">% Input sysAbs should be the reduced-order model, and the finite-state model should follow after 'MOR'.</span>
+<span class="comment">% Interface function is automatically set to u=uhat+Q*xhat+K*(x-P*xhat).</span>
+<span class="comment">% Output interface is K-matrix, Output varargout is F-matrix,</span>
+<span class="comment">% with F used to compute the reduced disturbance as w_r = w+F(x-Px_r).</span>
+<span class="comment">% Example: QuantifySim(sys, sysLTIr, 0.3, 'MOR', sysAbs)</span>
+<span class="comment">% see Tutorials/BAS for full example</span>
+<span class="comment">%</span>
+<span class="comment">% 'fast' - influence the trade-off between computation time and accuracy.</span>
+<span class="comment">% 'fast' is followed by a number between 0 and 1, here 0 is a fast but</span>
+<span class="comment">% inaccurate computation, 1 is a slow but accurate computation (of delta)</span>
+<span class="comment">% Example: QuantifySim(sysLTI, sysAbs, epsilon, 'interface', int_f, 'fast', 0.5);</span>
+<span class="comment">%</span>
+<span class="comment">% 'distr' - 'Gaussian' if a Gaussian distribution (default) is considered</span>
+<span class="comment">%               'Uniform' if a uniform distribution is considered.</span>
+<span class="comment">% Type of distribution 'Gaussian' or 'Uniform'. Warning, not fully tested!</span>
+<span class="comment">%</span>
+<span class="comment">% This function is based on the method described in:</span>
+<span class="comment">% van Huijgevoort, B. C., &amp; Haesaert, S. (2022). Similarity quantification</span>
+<span class="comment">% for linear stochastic systems: A coupling compensator approach. Automatica.</span>
+<span class="comment">%</span>
+<span class="comment">% Copyright 2022 Birgit van Huijgevoort b.c.v.huijgevoort@tue.nl</span>
+</pre><h2 id="3">Check mu and sigma</h2><pre class="codeinput">disp(<span class="string">'&lt;---- Start similarity quantification'</span>)
+
+dim = sys.dim;
+mu = sys.mu;
+sigma = sys.sigma;
+
+<span class="keyword">if</span> all(diag(sys.sigma)==1) ~= 1
+   error(<span class="string">'only sigma equal to identity is allowed'</span>)
+<span class="keyword">end</span>
+<span class="keyword">if</span> sum(mu) ~= 0
+   error(<span class="string">'only mu equal to zero allowed'</span>)
+<span class="keyword">end</span>
+</pre><h2 id="4">Set options</h2><pre class="codeinput"><span class="comment">% default values if unspecified</span>
+interfaceK = 0;
+givenD = 0;
+MOR = 0;
+<span class="keyword">if</span> sys.type == <span class="string">'PWA'</span>
+    uuf = zeros(size(sys.Partition(1).Dynamics.B,2),1);
+<span class="keyword">else</span>
+    uuf = zeros(size(sys.B,2),1);
+<span class="keyword">end</span>
+distrUni = 0;
+
+<span class="keyword">for</span> i = 1:length(varargin)
+    <span class="comment">% try to find 'interface'</span>
+    <span class="keyword">if</span> strcmp(varargin{i},<span class="string">'interface'</span>)
+        interfaceK = varargin{i+1};
+        <span class="keyword">if</span> interfaceK
+            uuf = max(sys.U{3}.V,[],<span class="string">'all'</span>);
+        <span class="keyword">else</span>
+            uuf = zeros(size(sys.B,2),1);
+        <span class="keyword">end</span>
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+<span class="keyword">for</span> i = 1:length(varargin)
+    <span class="comment">% try to find weighting</span>
+    <span class="keyword">if</span> strcmp(varargin{i},<span class="string">'weighting'</span>)
+        D = varargin{i+1};
+        givenD = 1;
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+<span class="keyword">for</span> i = 1:length(varargin)
+    <span class="comment">% try to find MOR</span>
+    <span class="keyword">if</span> strcmp(varargin{i},<span class="string">'MOR'</span>)
+        MOR = <span class="string">'true'</span>;
+        sysLTIr = sysAbs;
+        sysAbs = varargin{i+1};
+        P = sysLTIr.P;
+
+        uuf = max(sysLTIr.U{3}.V);
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+<span class="keyword">for</span> i = 1:length(varargin)
+    <span class="comment">% try to find distr</span>
+    <span class="keyword">if</span> strcmp(varargin{i},<span class="string">'distr'</span>)
+        distribution = varargin{i+1};
+        <span class="keyword">if</span> distribution == <span class="string">'Uniform'</span>
+            distrUni = 1;
+        <span class="keyword">else</span>
+            distrUni = 0;
+        <span class="keyword">end</span>
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+</pre><h2 id="5">no MOR</h2><pre class="codeinput"><span class="keyword">if</span> ~MOR
+
+    <span class="comment">% if linear system</span>
+    <span class="keyword">if</span> sys.type == <span class="string">'LTI'</span>
+        Bset = sysAbs.beta;
+        <span class="keyword">if</span> givenD <span class="comment">% if D is given</span>
+            [delta, K] = ComputeDelta2(epsilon,sys,mu,sigma,Bset,D,varargin);
+        <span class="keyword">else</span> <span class="comment">% if D is not given</span>
+            [delta, Dmin, Kmin] = ComputeDelta(epsilon,sys,mu,sigma,Bset,varargin);
+            simRel = SimRel(epsilon,delta,Dmin);
+            <span class="keyword">if</span> sys.dim == 1 || size(sys.C,1) == 1
+                simRel.NonDetLabels  = NonDeterministicLabelling(sysAbs.outputs, sys.regions, simRel);
+            <span class="keyword">else</span>
+                simRel.NonDetLabels  = NonDeterministicLabelling(sysAbs.outputs, sys.regions, simRel, <span class="string">'Efficient'</span>, sysAbs);
+            <span class="keyword">end</span>
+            interface = Kmin;
+        <span class="keyword">end</span>
+    <span class="keyword">elseif</span> sys.type == <span class="string">'PWA'</span>
+        <span class="keyword">if</span> givenD
+
+            <span class="comment">% Rewrite (struct --&gt; matrices) to be able to use parallel computing</span>
+            <span class="keyword">for</span> i = 1:sys.Np
+                Kset(i) = sys.Partition(i).K;
+
+                Bset = plus(sys.Partition(i).K,sysAbs.beta);
+                Bset = minVRep(Bset);
+                sys.Partition(i).Bset = Bset;
+                Bset_all(i) = sys.Partition(i).Bset;
+
+                Dynamics(i) = sys.Partition(i).Dynamics;
+            <span class="keyword">end</span>
+
+            <span class="comment">% Compute delta for each partition</span>
+            f_delta = ones(1,sys.Np);
+            KfK = [];
+            <span class="keyword">parfor</span> i = 1:sys.Np
+                Bset = plus(Kset(i),sysAbs.beta);
+                Bset = minVRep(Bset);
+
+                [delta, Kf] = ComputeDelta2(epsilon,Dynamics(i),mu,sigma,Bset,D,<span class="string">'interface'</span>,1,uuf);
+
+                f_delta(1,i) = delta;
+                KfK = [KfK; Kf];
+            <span class="keyword">end</span>
+            <span class="keyword">for</span> i = 1:sys.Np
+                sys.Partition(i).delta = f_delta(1,i);
+                sys.Partition(i).Kf = KfK(i,:);
+                sys.Partition(i).rel = SimRel(epsilon,sys.Partition(i).delta,eye(2));
+            <span class="keyword">end</span>
+
+            <span class="comment">%disp([', epsilon = ', num2str(epsilon), 'delta = ', num2str(f_delta)])</span>
+
+            <span class="comment">% Define simulation relation</span>
+            simRel = SimRel(epsilon,f_delta,eye(2));
+
+            <span class="comment">% Determine labelling</span>
+            simRel.NonDetLabels  = NonDeterministicLabelling(sysAbs.outputs, sys.regions, simRel);
+
+            <span class="comment">% Get delta in correct shape for SynthesizeRobustController</span>
+            simRel.delta = simRel.delta(sysAbs.Partition)';
+
+            interface = sys;
+        <span class="keyword">else</span>
+            error([<span class="string">'The similarity quantification for nonlinear systems requires a weighting matrix to be given. \n ...'</span> <span class="keyword">...</span>
+                <span class="string">'Please compute a weighting matrix before quantifying the similarity.'</span>])
+        <span class="keyword">end</span>
+    <span class="keyword">elseif</span> sys.type == <span class="string">'NonLin'</span>
+    <span class="comment">% if nonlinear system</span>
+        error([<span class="string">'A direct method for quantifying the similarity of a nonlinear system is not implemented yet. \n ...'</span> <span class="keyword">...</span>
+            <span class="string">'Please perform a piecewise-approximation first.'</span>])
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+</pre><h2 id="6">MOR</h2><pre class="codeinput"><span class="keyword">if</span> MOR
+    R = 1;
+    <span class="comment">% Compute polytope</span>
+    beta = sysAbs.beta;
+    Uhat = Polyhedron(sysAbs.inputs');
+
+    Wlb = sysLTIr.mu-3*sum(sysLTIr.sigma,2);
+    Wub = sysLTIr.mu+3*sum(sysLTIr.sigma,2);
+    Wset = Polyhedron(<span class="string">'lb'</span>, Wlb, <span class="string">'ub'</span>, Wub);
+
+    <span class="comment">% Compute additional error, by truncating the disturbance</span>
+    onemindel = mvncdf(Wlb,Wub,mu,sigma);
+    del_trunc = 1-onemindel;
+
+    Z = (sys.B*R-P*sysLTIr.B)*Uhat+(sys.Bw-P*sysLTIr.Bw)*Wset;
+    Zred = Z;
+    Zred = Z.minVRep();
+
+    <span class="comment">% Compute MOR simulation relation</span>
+    [delta, D, K, F] = ComputeDelta_intPQRK(epsilon,sys,sysLTIr,mu,sigma,uuf,Zred,P);
+    delta = delta+del_trunc;
+
+    interface = K;
+    varargout{1} = F;
+    simRel = SimRel(epsilon,delta,D);
+<span class="keyword">end</span>
+
+<span class="comment">% interface</span>
+<span class="comment">% simRel</span>
+
+disp(<span class="string">'----&gt; Finish similarity quantification'</span>)
+</pre><pre class="codeinput"><span class="keyword">end</span>
+</pre><p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2022a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+function [simRel, interface, varargout] = QuantifySim(sys, sysAbs, epsilon, varargin)
+% QUANTIFYSIM Quantify the similarity between a continuous-state (sys) and abstract (finite-state or reduced-order) model (sysAbs)  
+% using simulation relation R = {(xhat,x) | ||x-xhat||_D \leq epsilon}
+%
+% Inputs:
+% REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH-
+% sys = original system  
+% sysAbs = abstract system
+% epsilon = output deviation ||y-yhat|| \leq \epsilon
+%
+% Outputs:
+% REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH-
+% simRel = simulation relation
+% interface = interface function. For PWA systems interface equals sys with
+% added field Kf for the interface function u=uhat+Kf(x-xhat)
+%
+% Options (= varargin)
+% REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH
+% 'interface' - specify the interface function by following 'interface'
+% with 0, or 1. Here 0. (default) u=uhat, 1. u=uhat+K(x-xhat)
+% Example: 
+% QuantifySim(sys, sysAbs, 0.3, 'interface', 1)
+% see Tutorials/VanderPol for full example
+%
+% 'weighting' - specify the states used to compute weigthing matrix D for simulation relation R
+% Example: 
+% D = [1 0; 0 1];
+% QuantifySim(sys, sysAbs, 0.3, 'weighting', D)
+% see Tutorials/VanderPol for full example
+%
+% 'MOR' - Quantify the similarity between a full-order and reduced-order model.
+% Input sysAbs should be the reduced-order model, and the finite-state model should follow after 'MOR'. 
+% Interface function is automatically set to u=uhat+Q*xhat+K*(x-P*xhat). 
+% Output interface is K-matrix, Output varargout is F-matrix, 
+% with F used to compute the reduced disturbance as w_r = w+F(x-Px_r).
+% Example: QuantifySim(sys, sysLTIr, 0.3, 'MOR', sysAbs)
+% see Tutorials/BAS for full example
+%
+% 'fast' - influence the trade-off between computation time and accuracy.
+% 'fast' is followed by a number between 0 and 1, here 0 is a fast but
+% inaccurate computation, 1 is a slow but accurate computation (of delta)
+% Example: QuantifySim(sysLTI, sysAbs, epsilon, 'interface', int_f, 'fast', 0.5);
+%
+% 'distr' - 'Gaussian' if a Gaussian distribution (default) is considered 
+%               'Uniform' if a uniform distribution is considered.
+% Type of distribution 'Gaussian' or 'Uniform'. Warning, not fully tested!
+%
+% This function is based on the method described in:
+% van Huijgevoort, B. C., & Haesaert, S. (2022). Similarity quantification 
+% for linear stochastic systems: A coupling compensator approach. Automatica. 
+% 
+% Copyright 2022 Birgit van Huijgevoort b.c.v.huijgevoort@tue.nl
+
+%% Check mu and sigma
+disp('<REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH Start similarity quantification')
+
+dim = sys.dim;
+mu = sys.mu;
+sigma = sys.sigma;
+
+if all(diag(sys.sigma)==1) ~= 1
+   error('only sigma equal to identity is allowed')
+end
+if sum(mu) ~= 0 
+   error('only mu equal to zero allowed')
+end
+
+%% Set options
+
+% default values if unspecified
+interfaceK = 0;
+givenD = 0;
+MOR = 0;
+if sys.type == 'PWA'
+    uuf = zeros(size(sys.Partition(1).Dynamics.B,2),1);
+else
+    uuf = zeros(size(sys.B,2),1);
+end
+distrUni = 0;
+
+for i = 1:length(varargin)
+    % try to find 'interface'
+    if strcmp(varargin{i},'interface')
+        interfaceK = varargin{i+1};
+        if interfaceK
+            uuf = max(sys.U{3}.V,[],'all');
+        else
+            uuf = zeros(size(sys.B,2),1);
+        end
+    end
+end
+for i = 1:length(varargin)
+    % try to find weighting
+    if strcmp(varargin{i},'weighting')
+        D = varargin{i+1};
+        givenD = 1;
+    end
+end
+for i = 1:length(varargin)
+    % try to find MOR
+    if strcmp(varargin{i},'MOR')
+        MOR = 'true';
+        sysLTIr = sysAbs; 
+        sysAbs = varargin{i+1};
+        P = sysLTIr.P;
+
+        uuf = max(sysLTIr.U{3}.V);
+    end
+end
+for i = 1:length(varargin)
+    % try to find distr
+    if strcmp(varargin{i},'distr')
+        distribution = varargin{i+1};
+        if distribution == 'Uniform'
+            distrUni = 1;
+        else
+            distrUni = 0;
+        end
+    end
+end
+
+%% no MOR
+if ~MOR
+
+    % if linear system
+    if sys.type == 'LTI'
+        Bset = sysAbs.beta;
+        if givenD % if D is given
+            [delta, K] = ComputeDelta2(epsilon,sys,mu,sigma,Bset,D,varargin);
+        else % if D is not given
+            [delta, Dmin, Kmin] = ComputeDelta(epsilon,sys,mu,sigma,Bset,varargin);
+            simRel = SimRel(epsilon,delta,Dmin);
+            if sys.dim == 1 || size(sys.C,1) == 1
+                simRel.NonDetLabels  = NonDeterministicLabelling(sysAbs.outputs, sys.regions, simRel);
+            else
+                simRel.NonDetLabels  = NonDeterministicLabelling(sysAbs.outputs, sys.regions, simRel, 'Efficient', sysAbs);
+            end
+            interface = Kmin;
+        end
+    elseif sys.type == 'PWA'
+        if givenD
+            
+            % Rewrite (struct REPLACE_WITH_DASH_DASH> matrices) to be able to use parallel computing
+            for i = 1:sys.Np
+                Kset(i) = sys.Partition(i).K;
+                
+                Bset = plus(sys.Partition(i).K,sysAbs.beta);
+                Bset = minVRep(Bset);
+                sys.Partition(i).Bset = Bset;
+                Bset_all(i) = sys.Partition(i).Bset;
+                
+                Dynamics(i) = sys.Partition(i).Dynamics;
+            end
+        
+            % Compute delta for each partition
+            f_delta = ones(1,sys.Np);
+            KfK = [];
+            parfor i = 1:sys.Np
+                Bset = plus(Kset(i),sysAbs.beta);
+                Bset = minVRep(Bset);
+                
+                [delta, Kf] = ComputeDelta2(epsilon,Dynamics(i),mu,sigma,Bset,D,'interface',1,uuf);
+            
+                f_delta(1,i) = delta;
+                KfK = [KfK; Kf];
+            end
+            for i = 1:sys.Np
+                sys.Partition(i).delta = f_delta(1,i);
+                sys.Partition(i).Kf = KfK(i,:);
+                sys.Partition(i).rel = SimRel(epsilon,sys.Partition(i).delta,eye(2));
+            end
+            
+            %disp([', epsilon = ', num2str(epsilon), 'delta = ', num2str(f_delta)])
+        
+            % Define simulation relation
+            simRel = SimRel(epsilon,f_delta,eye(2));
+            
+            % Determine labelling 
+            simRel.NonDetLabels  = NonDeterministicLabelling(sysAbs.outputs, sys.regions, simRel);
+
+            % Get delta in correct shape for SynthesizeRobustController
+            simRel.delta = simRel.delta(sysAbs.Partition)';
+    
+            interface = sys;
+        else
+            error(['The similarity quantification for nonlinear systems requires a weighting matrix to be given. \n ...' ...
+                'Please compute a weighting matrix before quantifying the similarity.'])
+        end
+    elseif sys.type == 'NonLin'
+    % if nonlinear system
+        error(['A direct method for quantifying the similarity of a nonlinear system is not implemented yet. \n ...' ...
+            'Please perform a piecewise-approximation first.'])
+    end
+end
+
+
+%% MOR
+if MOR
+    R = 1;
+    % Compute polytope 
+    beta = sysAbs.beta;
+    Uhat = Polyhedron(sysAbs.inputs');
+    
+    Wlb = sysLTIr.mu-3*sum(sysLTIr.sigma,2);
+    Wub = sysLTIr.mu+3*sum(sysLTIr.sigma,2);
+    Wset = Polyhedron('lb', Wlb, 'ub', Wub);
+    
+    % Compute additional error, by truncating the disturbance
+    onemindel = mvncdf(Wlb,Wub,mu,sigma);
+    del_trunc = 1-onemindel;
+    
+    Z = (sys.B*R-P*sysLTIr.B)*Uhat+(sys.Bw-P*sysLTIr.Bw)*Wset;
+    Zred = Z;
+    Zred = Z.minVRep(); 
+    
+    % Compute MOR simulation relation
+    [delta, D, K, F] = ComputeDelta_intPQRK(epsilon,sys,sysLTIr,mu,sigma,uuf,Zred,P);
+    delta = delta+del_trunc;
+
+    interface = K;
+    varargout{1} = F;
+    simRel = SimRel(epsilon,delta,D);
+end
+
+% interface
+% simRel
+
+disp('REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH> Finish similarity quantification')
+end
+
+
+##### SOURCE END #####
+--></body></html>

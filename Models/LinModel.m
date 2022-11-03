@@ -32,10 +32,14 @@ classdef LinModel
         dim  % the dimension of the state space
         
         X % bounded state space  
-        U % bounded input space 
+        U % bounded input space (complete, part for actuation, part for feedback)
         regions % regions labelled with atomic propositions
         AP % atomic propositions
-        P % the probability transition matrix.  
+
+        MOR % either false or true to indicate if this is a reduced-order model or not.
+        P % the projection matrix for model-order reduction x = Pxr
+        Q % matrix used for interface function between reduced-order model and full-order model, u = ur + Qxr + K(x-Pxr)
+        original % (only for reduced-order models) the full-order model
     end
     
     methods
@@ -97,7 +101,7 @@ classdef LinModel
             x_n = obj.A*x + obj.B*u;
         end
 
-        function x_n = f_stoch(obj, x, u)
+        function [x_n, varargout] = f_stoch(obj, x, u, varargin)
             %F_STOCH computes the next states disturbed by noise 
             % The next state is based on the stochastic
             % dynamics for a linear model and is computed as
@@ -108,9 +112,17 @@ classdef LinModel
             % x_next = f_stoch(obj, x_current, u_current) computes the next
             % state x_next based on x_current, u_current, and based on the
             % model obj. 
-
-            w = mvnrnd(obj.mu, obj.sigma, 1)'; % Sample noise
-            x_n = obj.A*x + obj.B*u + obj.Bw*w;
+            
+            % check if disturbance is calculated already (and supplied
+            % through varargin)
+            if length(varargin) == 0
+                w = mvnrnd(obj.mu, obj.sigma, 1)'; % Sample noise
+                x_n = obj.A*x + obj.B*u + obj.Bw*w;
+                varargout{1} = w;
+            else
+                wr = varargin{1};
+                x_n = obj.A*x + obj.B*u + obj.Bw*wr;
+            end
         end
     end
 

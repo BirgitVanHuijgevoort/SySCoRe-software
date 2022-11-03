@@ -1,0 +1,390 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>TranslateSpec</title><meta name="generator" content="MATLAB 9.12"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2022-11-02"><meta name="DC.source" content="TranslateSpec.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#3">check if formula is in scLTL (instead of LTL)</a></li><li><a href="#4">Construct Buchi automaton</a></li><li><a href="#5">Clean up Buchi automaton</a></li><li><a href="#6">Translate to DFA</a></li></ul></div><pre class="codeinput"><span class="keyword">function</span> [DFA] = TranslateSpec(formula,AP,debug)
+</pre><pre class="codeinput"><span class="comment">%TRANSLATESPEC translates an scLTL specification to a deterministic</span>
+<span class="comment">% finite-state automaton (DFA)</span>
+<span class="comment">%</span>
+<span class="comment">% Inputs</span>
+<span class="comment">% ------</span>
+<span class="comment">% formula = specification written in scLTL, for syntax see LTL2BA/README</span>
+<span class="comment">% AP = atomic propositions</span>
+<span class="comment">%</span>
+<span class="comment">% Output struct DFA consisting of:</span>
+<span class="comment">% -----</span>
+<span class="comment">% states S</span>
+<span class="comment">% initial states S0</span>
+<span class="comment">% final states F</span>
+<span class="comment">% sink states sink</span>
+<span class="comment">% actions act consists of strings that activate the transitions</span>
+<span class="comment">% transitions trans with columns = actions as in DFA.act, row = state q, value = next state</span>
+<span class="comment">%</span>
+<span class="comment">% Basic reach-avoid example:</span>
+<span class="comment">% AP = {'p1','p2'};</span>
+<span class="comment">% formula = '(!p2 U p1)';  % p1 = reach region, p2 = avoid region</span>
+<span class="comment">% [DFA] = TranslateSpec(formula,sysLTI.AP)</span>
+<span class="comment">%</span>
+<span class="comment">% This code uses the tool LTL2BA, which can be found at http://www.lsv.fr/~gastin/ltl2ba/</span>
+<span class="comment">% and is written by Denis Oddoux (v1.0) and modified by Paul Gastin (v1.2 &amp; v1.3)</span>
+<span class="comment">%</span>
+<span class="comment">% Copyright 2022 Sofie Haesaert s.haesaert@tue.nl, Birgit van Huijgevoort b.c.v.huijgevoort@tue.nl</span>
+</pre><h2 id="3">check if formula is in scLTL (instead of LTL)</h2><pre class="codeinput">disp(<span class="string">'&lt;---- Start translate specification'</span>)
+
+<span class="comment">% check if always (G) is not in formula</span>
+<span class="keyword">if</span> ~isempty(strfind(formula, <span class="string">'G'</span>))
+    error(<span class="string">'Specification is not an scLTL specification, please input a different specification, or input a DFA.'</span>)
+<span class="keyword">end</span>
+
+<span class="comment">% check if negations are only given before APs</span>
+negs = strfind(formula, <span class="string">'!'</span>); <span class="comment">% find negations</span>
+<span class="comment">% Get indices of atomic propositions</span>
+AP_index = [];
+<span class="keyword">for</span> j = 1:length(AP)
+    index = strfind(formula,AP(j));
+    AP_index = [AP_index, index];
+<span class="keyword">end</span>
+flag = 0;
+<span class="keyword">for</span> i = 1:length(negs)
+    <span class="comment">% ! is directly followed by atomic proposition</span>
+    good = find(AP_index==negs(i)+1);
+    <span class="comment">% alternative: check if there is no operator after !</span>
+    <span class="keyword">if</span> isempty(good)
+        <span class="keyword">if</span> formula(negs+1) ~= <span class="string">'&amp;'</span> &amp; formula(negs+1) ~= <span class="string">'|'</span> &amp; formula(negs+1) ~= <span class="string">'F'</span> <span class="keyword">...</span>
+                &amp; formula(negs+1) ~= <span class="string">'U'</span> &amp; formula(negs+1) ~= <span class="string">'R'</span> &amp; formula(negs+1) ~= <span class="string">'X'</span>
+            good = 1;
+        <span class="keyword">end</span>
+    <span class="keyword">end</span>
+    <span class="keyword">if</span> isempty(good)
+        flag = 1;
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+<span class="keyword">if</span> flag
+    error(<span class="string">'Specification is not an scLTL specification, please input a different specification, or input a DFA.'</span>)
+<span class="keyword">end</span>
+</pre><h2 id="4">Construct Buchi automaton</h2><pre class="codeinput">[B,alphabet] = spec2buchi(formula, AP);
+</pre><h2 id="5">Clean up Buchi automaton</h2><p>1. Clean up Buchi Automaton. Remove states from Buchi that do not have a possible loop.</p><pre class="codeinput">selfloop =[];
+<span class="keyword">for</span> s = B.F
+    <span class="keyword">if</span> isempty(B.trans{s,s})
+        selfloop =[selfloop, 0];
+
+    <span class="keyword">else</span>
+        selfloop = [selfloop, 1];
+
+    <span class="keyword">end</span>
+
+<span class="keyword">end</span>
+B.F = B.F(selfloop==1);
+
+<span class="keyword">if</span> nargin&gt;2 &amp;&amp; debug
+    figure;
+    h=plot(B.aut,<span class="string">'EdgeLabel'</span>,B.aut.Edges.Prop);
+<span class="keyword">end</span>
+
+
+<span class="comment">% Check whether we accepting state help (1) as self loop.</span>
+<span class="keyword">if</span> length(B.F)~=1
+    error(<span class="string">'Wrong number of accepting states this software is not able to write the specification to a DFA'</span> )
+<span class="keyword">end</span>
+
+<span class="keyword">if</span> length(B.S0) ~=1
+    error(<span class="string">'length(B.S0) ~=1: This feature has not been implemented'</span>)
+<span class="keyword">end</span>
+</pre><h2 id="6">Translate to DFA</h2><p>You now have a NFA. This still needs to be translated to a DFA</p><pre class="codeinput"><span class="comment">% step 1: create a table using cell</span>
+<span class="comment">% from state | action to set of states | ...</span>
+Table_transitions = cell(length(B.S), length(B.S));
+<span class="keyword">for</span> s=B.S
+    <span class="keyword">for</span> act =1:length(alphabet)
+        next_states = [];
+        <span class="keyword">for</span> s_n = B.S
+           <span class="keyword">if</span> ismember(act,B.trans{s,s_n})
+               next_states = [next_states,s_n];
+           <span class="keyword">end</span>
+        <span class="keyword">end</span>
+        Table_transitions{s,act} = next_states;
+
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+
+
+<span class="comment">% find finite states van DFA and transitions</span>
+dfa_states = {[0], B.S0};        <span class="comment">% Add initial state of the Buchi to the DFA</span>
+s_index = 1;
+trans = zeros(1, length(alphabet));
+<span class="keyword">while</span> length(dfa_states) &gt; s_index
+    s_index = s_index+1;
+    s = dfa_states{s_index};
+    trans(s_index, :)=NaN;
+
+
+    <span class="keyword">for</span> act =1:length(alphabet)
+        s_found = unique([Table_transitions{s,act}]); <span class="comment">% s can be a set of values, this action also sorts if needed</span>
+        <span class="keyword">if</span> ismember(B.F, s_found)  <span class="comment">% transition to target is possible</span>
+            trans(s_index, act) = 1;
+        <span class="keyword">else</span>
+
+        poss_trans = [cellfun(@(x) isempty(setxor(x, s_found)), dfa_states)]; <span class="comment">% check existance of this set of states in the given states</span>
+        [m,i]=max(poss_trans);
+
+
+            <span class="keyword">if</span> max(poss_trans)==0
+                <span class="comment">%display('add state')</span>
+                trans(s_index, act) = length(dfa_states)+1;
+
+                dfa_states = {dfa_states{1:end}, s_found};
+
+            <span class="keyword">else</span>
+                trans(s_index, act) = i;
+
+            <span class="keyword">end</span>
+
+        <span class="keyword">end</span>
+
+    <span class="keyword">end</span>
+
+
+<span class="keyword">end</span>
+DFA.S = 1:s_index;  <span class="comment">% DFA states</span>
+DFA.S0 = 2;         <span class="comment">% Initial states</span>
+DFA.F = 1;          <span class="comment">% Accepting state is the first state.</span>
+DFA.act = alphabet; <span class="comment">% alphabet used as inputs for actions</span>
+DFA.trans = trans;  <span class="comment">% transitions</span>
+DFA.sink = DFA.S(all(DFA.trans == DFA.S',2)); <span class="comment">% find modes with only self loops</span>
+
+disp(<span class="string">'----&gt; Finish translate specification'</span>)
+</pre><pre class="codeinput"><span class="keyword">end</span>
+</pre><p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2022a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+function [DFA] = TranslateSpec(formula,AP,debug)
+%TRANSLATESPEC translates an scLTL specification to a deterministic
+% finite-state automaton (DFA)
+%
+% Inputs
+% REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH
+% formula = specification written in scLTL, for syntax see LTL2BA/README
+% AP = atomic propositions
+%
+% Output struct DFA consisting of:
+% REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH-
+% states S
+% initial states S0
+% final states F
+% sink states sink
+% actions act consists of strings that activate the transitions
+% transitions trans with columns = actions as in DFA.act, row = state q, value = next state
+% 
+% Basic reach-avoid example: 
+% AP = {'p1','p2'};
+% formula = '(!p2 U p1)';  % p1 = reach region, p2 = avoid region
+% [DFA] = TranslateSpec(formula,sysLTI.AP)
+%
+% This code uses the tool LTL2BA, which can be found at http://www.lsv.fr/~gastin/ltl2ba/
+% and is written by Denis Oddoux (v1.0) and modified by Paul Gastin (v1.2 & v1.3)
+%
+% Copyright 2022 Sofie Haesaert s.haesaert@tue.nl, Birgit van Huijgevoort b.c.v.huijgevoort@tue.nl
+
+%% check if formula is in scLTL (instead of LTL)
+disp('<REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH Start translate specification')
+
+% check if always (G) is not in formula
+if ~isempty(strfind(formula, 'G'))
+    error('Specification is not an scLTL specification, please input a different specification, or input a DFA.')
+end
+
+% check if negations are only given before APs
+negs = strfind(formula, '!'); % find negations
+% Get indices of atomic propositions
+AP_index = [];
+for j = 1:length(AP)
+    index = strfind(formula,AP(j));
+    AP_index = [AP_index, index];
+end
+flag = 0;
+for i = 1:length(negs)
+    % ! is directly followed by atomic proposition
+    good = find(AP_index==negs(i)+1);
+    % alternative: check if there is no operator after !
+    if isempty(good)
+        if formula(negs+1) ~= '&' & formula(negs+1) ~= '|' & formula(negs+1) ~= 'F' ...
+                & formula(negs+1) ~= 'U' & formula(negs+1) ~= 'R' & formula(negs+1) ~= 'X'
+            good = 1;
+        end
+    end
+    if isempty(good)
+        flag = 1;
+    end
+end
+if flag
+    error('Specification is not an scLTL specification, please input a different specification, or input a DFA.')
+end
+
+
+%% Construct Buchi automaton
+[B,alphabet] = spec2buchi(formula, AP);
+
+%% Clean up Buchi automaton
+% 1. Clean up Buchi Automaton. Remove states from Buchi that do not have a
+% possible loop. 
+selfloop =[];
+for s = B.F
+    if isempty(B.trans{s,s})
+        selfloop =[selfloop, 0];
+    
+    else
+        selfloop = [selfloop, 1];
+        
+    end
+    
+end
+B.F = B.F(selfloop==1);
+
+if nargin>2 && debug
+    figure;
+    h=plot(B.aut,'EdgeLabel',B.aut.Edges.Prop);
+end
+
+
+% Check whether we accepting state help (1) as self loop. 
+if length(B.F)~=1
+    error('Wrong number of accepting states this software is not able to write the specification to a DFA' )
+end
+
+if length(B.S0) ~=1
+    error('length(B.S0) ~=1: This feature has not been implemented')
+end
+
+%% Translate to DFA
+% You now have a NFA. This still needs to be translated to a DFA
+
+% step 1: create a table using cell
+% from state | action to set of states | ...
+Table_transitions = cell(length(B.S), length(B.S));
+for s=B.S
+    for act =1:length(alphabet)
+        next_states = [];
+        for s_n = B.S
+           if ismember(act,B.trans{s,s_n})
+               next_states = [next_states,s_n];
+           end
+        end
+        Table_transitions{s,act} = next_states;
+        
+    end
+end
+
+
+% find finite states van DFA and transitions
+dfa_states = {[0], B.S0};        % Add initial state of the Buchi to the DFA
+s_index = 1;
+trans = zeros(1, length(alphabet));
+while length(dfa_states) > s_index
+    s_index = s_index+1;
+    s = dfa_states{s_index};
+    trans(s_index, :)=NaN;
+   
+    
+    for act =1:length(alphabet)
+        s_found = unique([Table_transitions{s,act}]); % s can be a set of values, this action also sorts if needed       
+        if ismember(B.F, s_found)  % transition to target is possible
+            trans(s_index, act) = 1;
+        else
+        
+        poss_trans = [cellfun(@(x) isempty(setxor(x, s_found)), dfa_states)]; % check existance of this set of states in the given states
+        [m,i]=max(poss_trans);
+            
+            
+            if max(poss_trans)==0 
+                %display('add state')
+                trans(s_index, act) = length(dfa_states)+1;
+
+                dfa_states = {dfa_states{1:end}, s_found};
+                
+            else  
+                trans(s_index, act) = i;
+                
+            end
+            
+        end
+        
+    end
+    
+    
+end
+DFA.S = 1:s_index;  % DFA states
+DFA.S0 = 2;         % Initial states
+DFA.F = 1;          % Accepting state is the first state. 
+DFA.act = alphabet; % alphabet used as inputs for actions 
+DFA.trans = trans;  % transitions
+DFA.sink = DFA.S(all(DFA.trans == DFA.S',2)); % find modes with only self loops
+
+disp('REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH> Finish translate specification')
+end
+
+
+##### SOURCE END #####
+--></body></html>

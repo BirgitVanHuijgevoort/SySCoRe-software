@@ -1,0 +1,358 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>LinModel</title><meta name="generator" content="MATLAB 9.12"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2022-11-02"><meta name="DC.source" content="LinModel.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><pre class="codeinput"><span class="keyword">classdef</span> LinModel
+<span class="comment">% LINMODEL Class of LTI systems with noise on the transitions.</span>
+<span class="comment">% Objects of this class define a model with dynamics</span>
+<span class="comment">%  x(t+1) = A x(t) + B u(t) + Bw w(t)</span>
+<span class="comment">%  y(t)   = C x(t)</span>
+<span class="comment">% with w(t) ~ N(mu, sigma) where N is a normal distribution with mean mu</span>
+<span class="comment">% and sigma the noise variance</span>
+<span class="comment">%</span>
+<span class="comment">% Examples</span>
+<span class="comment">% A simple 2 dimensional model with one control input and one</span>
+<span class="comment">% output:</span>
+<span class="comment">%   A = [1 0; 0 1];</span>
+<span class="comment">%   B = [1; 0];</span>
+<span class="comment">%   C = [1, 1];</span>
+<span class="comment">%   D = [0];</span>
+<span class="comment">%   Bw = [0; 1];</span>
+<span class="comment">%   model = LinModel(A, B, C, D, Bw, [0; 0], eye(2))</span>
+<span class="comment">%</span>
+<span class="comment">% See also: LinModel (Constructor)</span>
+<span class="comment">% Copyright 2021 Sofie Haesaert s.haesaert@tue.nl</span>
+
+    <span class="keyword">properties</span>
+        type = <span class="string">"LTI"</span>; <span class="comment">% Type of model</span>
+        A <span class="comment">% A matrix of LTI dynamics</span>
+        B <span class="comment">% B Matrix of LTI dynamics</span>
+        C  <span class="comment">% C matrix of LTI matrix towards the output dimensions</span>
+        D <span class="comment">% D matrix of LTI matrix (Should be equal to zero)</span>
+        Bw <span class="comment">% Bw matrix for noise inputs of LTI dynamics</span>
+        mu <span class="comment">% noise mean vector</span>
+        sigma <span class="comment">% noise covariance matrix</span>
+        wsupport <span class="comment">% noise support</span>
+        dim  <span class="comment">% the dimension of the state space</span>
+
+        X <span class="comment">% bounded state space</span>
+        U <span class="comment">% bounded input space (complete, part for actuation, part for feedback)</span>
+        regions <span class="comment">% regions labelled with atomic propositions</span>
+        AP <span class="comment">% atomic propositions</span>
+
+        MOR <span class="comment">% either false or true to indicate if this is a reduced-order model or not.</span>
+        P <span class="comment">% the projection matrix for model-order reduction x = Pxr</span>
+        Q <span class="comment">% matrix used for interface function between reduced-order model and full-order model, u = ur + Qxr + K(x-Pxr)</span>
+        original <span class="comment">% (only for reduced-order models) the full-order model</span>
+    <span class="keyword">end</span>
+
+    <span class="keyword">methods</span>
+        <span class="keyword">function</span> obj = LinModel(A, B, C, D, Bw, varargin)
+            <span class="comment">%LINMODEL Construct an instance of this class</span>
+            <span class="comment">%   Load all values A, B, C, D, Bw, mu, sigma as described in the</span>
+            <span class="comment">%   class file.</span>
+            <span class="comment">%   model = LinModel(A, B, C, D, Bw, mu, sigma) Loads model dynamics.</span>
+            <span class="comment">%</span>
+            <span class="comment">%</span>
+            <span class="comment">% Examples</span>
+            <span class="comment">% A simple 2 dimensional model with one control input and one output:</span>
+            <span class="comment">%   A = [1 0; 0 1];</span>
+            <span class="comment">%   B = [1; 0];</span>
+            <span class="comment">%   C = [1, 1];</span>
+            <span class="comment">%   D = [0];</span>
+            <span class="comment">%   Bw = [0; 1];</span>
+            <span class="comment">%   model = LinModel(A, B, C, D, Bw, [0; 0], eye(2))</span>
+
+            obj.A = A;
+            obj.B = B;
+            obj.D = D;
+            obj.C = C;
+            obj.Bw = Bw;
+            obj.dim = size(Bw, 1);
+
+            <span class="comment">% Allow for different noise distributions</span>
+            <span class="keyword">if</span> nargin &lt;= 4
+                error(<span class="string">"LinModel requires at least 5 arguments."</span>)
+            <span class="keyword">elseif</span> (nargin == 6 &amp;&amp; numel(varargin{1}) &gt;= 2)
+                <span class="comment">% Bounded uniform distribution</span>
+                obj = obj.setWSupport(varargin{1});
+            <span class="keyword">elseif</span> nargin == 7
+                <span class="comment">% Unbounded Gaussian distribution</span>
+                obj.mu = varargin{1};
+                obj.sigma = varargin{2};
+                obj = obj.setWSupport([-inf, inf]);
+            <span class="keyword">elseif</span> nargin == 8
+                <span class="comment">% Bounded Gaussian distribution</span>
+                obj.mu = varargin{1};
+                obj.sigma = varargin{2};
+                obj = obj.setWSupport(varargin{3});
+            <span class="keyword">else</span>
+                error(<span class="string">"Unsupported arguments for calling LinModel."</span>)
+            <span class="keyword">end</span>
+
+        <span class="keyword">end</span>
+
+        <span class="keyword">function</span> x_n = f_det(obj, x, u)
+            <span class="comment">%F_DET computes the next states undisturbed by noise</span>
+            <span class="comment">% The next state is based on the deterministic/nominal</span>
+            <span class="comment">% dynamics for a linear model and is computed as</span>
+            <span class="comment">% x(t+1) = A x(t) + B u(t)</span>
+            <span class="comment">%</span>
+            <span class="comment">% x_next = f_det(obj,x_current,u_current) computes the next</span>
+            <span class="comment">% state x_next based on x_current, u_current, and based on the</span>
+            <span class="comment">% model obj.</span>
+
+            x_n = obj.A*x + obj.B*u;
+        <span class="keyword">end</span>
+
+        <span class="keyword">function</span> [x_n, varargout] = f_stoch(obj, x, u, varargin)
+            <span class="comment">%F_STOCH computes the next states disturbed by noise</span>
+            <span class="comment">% The next state is based on the stochastic</span>
+            <span class="comment">% dynamics for a linear model and is computed as</span>
+            <span class="comment">% x(t+1) = A x(t) + B u(t) + Bw w(t)</span>
+            <span class="comment">% where w(t) is sampled at random from it's specified</span>
+            <span class="comment">% underlying distribution</span>
+            <span class="comment">%</span>
+            <span class="comment">% x_next = f_stoch(obj, x_current, u_current) computes the next</span>
+            <span class="comment">% state x_next based on x_current, u_current, and based on the</span>
+            <span class="comment">% model obj.</span>
+
+            <span class="comment">% check if disturbance is calculated already (and supplied</span>
+            <span class="comment">% through varargin)</span>
+            <span class="keyword">if</span> length(varargin) == 0
+                w = mvnrnd(obj.mu, obj.sigma, 1)'; <span class="comment">% Sample noise</span>
+                x_n = obj.A*x + obj.B*u + obj.Bw*w;
+                varargout{1} = w;
+            <span class="keyword">else</span>
+                wr = varargin{1};
+                x_n = obj.A*x + obj.B*u + obj.Bw*wr;
+            <span class="keyword">end</span>
+        <span class="keyword">end</span>
+    <span class="keyword">end</span>
+
+    <span class="keyword">methods</span> (Hidden)
+        <span class="keyword">function</span> obj = setWSupport(obj, wsupport)
+            assert(size(wsupport, 2) == 2, <span class="string">"Invalid noise support."</span>)
+            <span class="keyword">if</span> (size(wsupport, 1) == 1 &amp;&amp; size(wsupport, 1) ~= obj.dim)
+                <span class="comment">% Copy support for all dimensions</span>
+                obj.wsupport = repmat(wsupport, obj.dim, 1);
+            <span class="keyword">elseif</span> size(wsupport, 1) == obj.dim
+                obj.wsupport = wsupport;
+            <span class="keyword">else</span>
+                error(<span class="string">"Invalid noise support."</span>)
+            <span class="keyword">end</span>
+        <span class="keyword">end</span>
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+</pre><p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2022a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+classdef LinModel
+% LINMODEL Class of LTI systems with noise on the transitions. 
+% Objects of this class define a model with dynamics
+%  x(t+1) = A x(t) + B u(t) + Bw w(t)
+%  y(t)   = C x(t)
+% with w(t) ~ N(mu, sigma) where N is a normal distribution with mean mu
+% and sigma the noise variance
+%
+% Examples 
+% A simple 2 dimensional model with one control input and one
+% output:
+%   A = [1 0; 0 1]; 
+%   B = [1; 0]; 
+%   C = [1, 1]; 
+%   D = [0]; 
+%   Bw = [0; 1]; 
+%   model = LinModel(A, B, C, D, Bw, [0; 0], eye(2))
+%
+% See also: LinModel (Constructor)
+% Copyright 2021 Sofie Haesaert s.haesaert@tue.nl
+    
+    properties
+        type = "LTI"; % Type of model
+        A % A matrix of LTI dynamics
+        B % B Matrix of LTI dynamics
+        C  % C matrix of LTI matrix towards the output dimensions
+        D % D matrix of LTI matrix (Should be equal to zero)
+        Bw % Bw matrix for noise inputs of LTI dynamics
+        mu % noise mean vector
+        sigma % noise covariance matrix
+        wsupport % noise support
+        dim  % the dimension of the state space
+        
+        X % bounded state space  
+        U % bounded input space (complete, part for actuation, part for feedback)
+        regions % regions labelled with atomic propositions
+        AP % atomic propositions
+
+        MOR % either false or true to indicate if this is a reduced-order model or not.
+        P % the projection matrix for model-order reduction x = Pxr
+        Q % matrix used for interface function between reduced-order model and full-order model, u = ur + Qxr + K(x-Pxr)
+        original % (only for reduced-order models) the full-order model
+    end
+    
+    methods
+        function obj = LinModel(A, B, C, D, Bw, varargin)
+            %LINMODEL Construct an instance of this class
+            %   Load all values A, B, C, D, Bw, mu, sigma as described in the
+            %   class file. 
+            %   model = LinModel(A, B, C, D, Bw, mu, sigma) Loads model dynamics.
+            % 
+            % 
+            % Examples
+            % A simple 2 dimensional model with one control input and one output:
+            %   A = [1 0; 0 1];
+            %   B = [1; 0];
+            %   C = [1, 1];
+            %   D = [0];
+            %   Bw = [0; 1];
+            %   model = LinModel(A, B, C, D, Bw, [0; 0], eye(2))
+
+            obj.A = A;
+            obj.B = B;
+            obj.D = D;
+            obj.C = C;
+            obj.Bw = Bw;
+            obj.dim = size(Bw, 1);
+
+            % Allow for different noise distributions
+            if nargin <= 4
+                error("LinModel requires at least 5 arguments.")
+            elseif (nargin == 6 && numel(varargin{1}) >= 2)
+                % Bounded uniform distribution
+                obj = obj.setWSupport(varargin{1});
+            elseif nargin == 7
+                % Unbounded Gaussian distribution
+                obj.mu = varargin{1};
+                obj.sigma = varargin{2};
+                obj = obj.setWSupport([-inf, inf]);
+            elseif nargin == 8
+                % Bounded Gaussian distribution
+                obj.mu = varargin{1};
+                obj.sigma = varargin{2};
+                obj = obj.setWSupport(varargin{3});
+            else
+                error("Unsupported arguments for calling LinModel.")
+            end
+            
+        end
+
+        function x_n = f_det(obj, x, u)
+            %F_DET computes the next states undisturbed by noise 
+            % The next state is based on the deterministic/nominal
+            % dynamics for a linear model and is computed as
+            % x(t+1) = A x(t) + B u(t)
+            %
+            % x_next = f_det(obj,x_current,u_current) computes the next
+            % state x_next based on x_current, u_current, and based on the
+            % model obj. 
+
+            x_n = obj.A*x + obj.B*u;
+        end
+
+        function [x_n, varargout] = f_stoch(obj, x, u, varargin)
+            %F_STOCH computes the next states disturbed by noise 
+            % The next state is based on the stochastic
+            % dynamics for a linear model and is computed as
+            % x(t+1) = A x(t) + B u(t) + Bw w(t)
+            % where w(t) is sampled at random from it's specified
+            % underlying distribution
+            %
+            % x_next = f_stoch(obj, x_current, u_current) computes the next
+            % state x_next based on x_current, u_current, and based on the
+            % model obj. 
+            
+            % check if disturbance is calculated already (and supplied
+            % through varargin)
+            if length(varargin) == 0
+                w = mvnrnd(obj.mu, obj.sigma, 1)'; % Sample noise
+                x_n = obj.A*x + obj.B*u + obj.Bw*w;
+                varargout{1} = w;
+            else
+                wr = varargin{1};
+                x_n = obj.A*x + obj.B*u + obj.Bw*wr;
+            end
+        end
+    end
+
+    methods (Hidden)
+        function obj = setWSupport(obj, wsupport)
+            assert(size(wsupport, 2) == 2, "Invalid noise support.")
+            if (size(wsupport, 1) == 1 && size(wsupport, 1) ~= obj.dim)
+                % Copy support for all dimensions
+                obj.wsupport = repmat(wsupport, obj.dim, 1);
+            elseif size(wsupport, 1) == obj.dim
+                obj.wsupport = wsupport;
+            else
+                error("Invalid noise support.")
+            end
+        end
+    end
+end
+
+##### SOURCE END #####
+--></body></html>

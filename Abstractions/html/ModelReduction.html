@@ -1,0 +1,195 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>ModelReduction</title><meta name="generator" content="MATLAB 9.12"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2022-11-02"><meta name="DC.source" content="ModelReduction.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#3">Construct reduced order state space model</a></li><li><a href="#4">Obtain parameters of reduced order model</a></li></ul></div><pre class="codeinput"><span class="keyword">function</span> [sysLTIr,F] = ModelReduction(sysLTI,dimr,f)
+</pre><pre class="codeinput"><span class="comment">%MODELREDUCTION creates a reduced order model sysLTIr of dimension dimr based on the original</span>
+<span class="comment">% model sysLTI by using balanced truncations on a closed loop system.</span>
+<span class="comment">%</span>
+<span class="comment">% Inputs</span>
+<span class="comment">% ------</span>
+<span class="comment">% sysLTI = original LTI system</span>
+<span class="comment">% dimr = desired dimension of reduced-order model</span>
+<span class="comment">% f = constant (min xCCx + ufu) used to construct feedback matrix F</span>
+<span class="comment">%</span>
+<span class="comment">% Outputs</span>
+<span class="comment">% -------</span>
+<span class="comment">% sysLTIr = reduced order LTI system</span>
+<span class="comment">% F = feedback matrix (hence u = Fx) used to construct the closed loop</span>
+<span class="comment">% system with x_cl(t+1) = (A-B*F)x_cl(t)+Bu(t)</span>
+<span class="comment">%</span>
+<span class="comment">% Example</span>
+<span class="comment">% -------</span>
+<span class="comment">% sysLTI = LinModel(A, B, C, D, Bw, zeros(7,1), eye(7));</span>
+<span class="comment">% dimr = 2;</span>
+<span class="comment">% f = 0.1;</span>
+<span class="comment">% [sysLTIr, F] = ModelReduction(sysLTI,dimr,f);</span>
+<span class="comment">% For a detailed example see: Tutorials/BAS</span>
+<span class="comment">%</span>
+<span class="comment">% Copyright 2022 Birgit van Huijgevoort b.c.v.huijgevoort@tue.nl</span>
+</pre><h2 id="3">Construct reduced order state space model</h2><pre class="codeinput">disp(<span class="string">'&lt;---- Start model-order reduction'</span>)
+
+
+<span class="comment">% get a decent guess for the feedback matrix</span>
+[~,~,F]=dare(sysLTI.A,sysLTI.B,sysLTI.C'*sysLTI.C,f);
+
+<span class="comment">% find reduced order model</span>
+sysclosed=ss(sysLTI.A-sysLTI.B*F,[sysLTI.B,sysLTI.Bw],sysLTI.C,sysLTI.D,-1); <span class="comment">%(ignore disturbance)</span>
+sysred=balred(sysclosed,dimr);
+sysred=ss(tf(sysred));
+</pre><h2 id="4">Obtain parameters of reduced order model</h2><pre class="codeinput">Ar = sysred.A;
+Br = sysred.B(:,1);
+Cr = sysred.C;
+Dr = zeros(1,1);
+Bwr = sysred.B(:,2:end);
+
+mur = sysLTI.mu; <span class="comment">% mean of disturbance</span>
+sigmar = sysLTI.sigma;<span class="comment">% variance of disturbance</span>
+
+sysLTIr = LinModel(Ar,Br,Cr,Dr,Bwr,mur,sigmar);
+sysLTIr.MOR = 1;
+
+<span class="comment">% optional: verify if behaviour of original and reduced-order model is</span>
+<span class="comment">% similar</span>
+<span class="comment">%sys = ss(sysLTI.A-sysLTI.B*F,sysLTI.B,sysLTI.C,sysLTI.D);</span>
+<span class="comment">%sysr = ss(sysLTIr.A,sysLTIr.B,sysLTIr.C,sysLTIr.D);</span>
+<span class="comment">%bodeplot(sys,sysr,'r--')</span>
+
+<span class="comment">% Store original system</span>
+sysLTIr.original = sysLTI;
+
+disp(<span class="string">'----&gt; Reduced order model obtained'</span>)
+</pre><pre class="codeinput"><span class="keyword">end</span>
+</pre><p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2022a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+function [sysLTIr,F] = ModelReduction(sysLTI,dimr,f)
+%MODELREDUCTION creates a reduced order model sysLTIr of dimension dimr based on the original
+% model sysLTI by using balanced truncations on a closed loop system. 
+% 
+% Inputs
+% REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH
+% sysLTI = original LTI system
+% dimr = desired dimension of reduced-order model
+% f = constant (min xCCx + ufu) used to construct feedback matrix F
+%
+% Outputs
+% REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH-
+% sysLTIr = reduced order LTI system
+% F = feedback matrix (hence u = Fx) used to construct the closed loop
+% system with x_cl(t+1) = (A-B*F)x_cl(t)+Bu(t)
+% 
+% Example
+% REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH-
+% sysLTI = LinModel(A, B, C, D, Bw, zeros(7,1), eye(7));
+% dimr = 2;
+% f = 0.1;
+% [sysLTIr, F] = ModelReduction(sysLTI,dimr,f);
+% For a detailed example see: Tutorials/BAS
+%
+% Copyright 2022 Birgit van Huijgevoort b.c.v.huijgevoort@tue.nl 
+
+%% Construct reduced order state space model
+disp('<REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH Start model-order reduction')
+
+
+% get a decent guess for the feedback matrix
+[~,~,F]=dare(sysLTI.A,sysLTI.B,sysLTI.C'*sysLTI.C,f);
+
+% find reduced order model
+sysclosed=ss(sysLTI.A-sysLTI.B*F,[sysLTI.B,sysLTI.Bw],sysLTI.C,sysLTI.D,-1); %(ignore disturbance)
+sysred=balred(sysclosed,dimr);
+sysred=ss(tf(sysred));
+
+%% Obtain parameters of reduced order model
+Ar = sysred.A;
+Br = sysred.B(:,1);
+Cr = sysred.C;
+Dr = zeros(1,1);
+Bwr = sysred.B(:,2:end);
+
+mur = sysLTI.mu; % mean of disturbance
+sigmar = sysLTI.sigma;% variance of disturbance
+
+sysLTIr = LinModel(Ar,Br,Cr,Dr,Bwr,mur,sigmar);
+sysLTIr.MOR = 1;
+
+% optional: verify if behaviour of original and reduced-order model is
+% similar
+%sys = ss(sysLTI.A-sysLTI.B*F,sysLTI.B,sysLTI.C,sysLTI.D);
+%sysr = ss(sysLTIr.A,sysLTIr.B,sysLTIr.C,sysLTIr.D);
+%bodeplot(sys,sysr,'rREPLACE_WITH_DASH_DASH')
+
+% Store original system
+sysLTIr.original = sysLTI;
+
+disp('REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH> Reduced order model obtained')
+end
+
+
+##### SOURCE END #####
+--></body></html>

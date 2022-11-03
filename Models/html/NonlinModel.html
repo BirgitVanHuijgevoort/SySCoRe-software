@@ -1,0 +1,334 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>NonlinModel</title><meta name="generator" content="MATLAB 9.12"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2022-11-02"><meta name="DC.source" content="NonlinModel.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><pre class="codeinput"><span class="keyword">classdef</span> NonlinModel
+    <span class="comment">%NONLINMODEL Class of nonlinear systems with noise on the transitions.</span>
+    <span class="comment">%   Nonlinear model with dynamics</span>
+    <span class="comment">%   x(t+1) = f(x(t), u(t)) + Bw w(t) with w(t)\sim N(mu, \sigma)</span>
+    <span class="comment">%         f = the deterministic function for the state update</span>
+    <span class="comment">%           f:X\times U -&gt; X</span>
+    <span class="comment">%         C = C matrix to map from state to to output space</span>
+    <span class="comment">%         Bw = B matrix for noise</span>
+    <span class="comment">%         mu = noise mean</span>
+    <span class="comment">%         sigma = noise variance</span>
+    <span class="comment">%         dim  = the dimension of the state space</span>
+    <span class="comment">%</span>
+    <span class="comment">%</span>
+    <span class="comment">% Examples</span>
+    <span class="comment">% A simple 2 dimensional model with one control input and one</span>
+    <span class="comment">% output:</span>
+    <span class="comment">%   C = [1, 1];</span>
+    <span class="comment">%   Bw = [0; 1];</span>
+    <span class="comment">%   model = NonlinModel(@vanderpol_f,C,Bw,[0;0], eye(2),param)</span>
+    <span class="comment">%</span>
+    <span class="comment">%     x = sym('x', [sysNonLin.dim 1]);</span>
+    <span class="comment">%     f1sym = x(1)+x(2)*sysNonLin.param.tau;</span>
+    <span class="comment">%     f2sym = x(2)+(-x(1)+(1-x(1)^2)*x(2))*sysNonLin.param.tau;</span>
+    <span class="comment">%     sysNonLin.fsym = [f1sym; f2sym];</span>
+    <span class="comment">%</span>
+    <span class="comment">%</span>
+    <span class="comment">% with function vanderpol_f defined below.</span>
+    <span class="comment">%   function xp = vanderpol_f(x, u,sys)</span>
+    <span class="comment">%     if nargin ~= 3</span>
+    <span class="comment">%         error('Invalid input !');</span>
+    <span class="comment">%     end</span>
+    <span class="comment">%</span>
+    <span class="comment">%     if size(x,1)~=2</span>
+    <span class="comment">%         error('Wrong size of x');</span>
+    <span class="comment">%     end</span>
+    <span class="comment">%     xp = zeros(size(x));</span>
+    <span class="comment">%</span>
+    <span class="comment">%     xp(1,:) = x(1,:) + sys.param.tau *x(2,:);</span>
+    <span class="comment">%     xp(2,:) = x(2,:)+ (-x(1,:) + (1-x(1,:).^2) .* x(2,:)) .* sys.param.tau + u;</span>
+    <span class="comment">%     end</span>
+    <span class="comment">%</span>
+    <span class="comment">% See also: LinModel</span>
+    <span class="comment">%</span>
+    <span class="comment">% Copyright 2021,   Birgit van Huijgevoort, Sofie Haesaert</span>
+    <span class="comment">% (s.haesaert@tue.nl).</span>
+
+
+    <span class="keyword">properties</span>
+        type = <span class="string">"NonLin"</span>;
+        f <span class="comment">% the deterministic function for the state update</span>
+        fsym <span class="comment">% same as f but symbolic</span>
+        C <span class="comment">% C matrix to map from state to to output space</span>
+        Bw <span class="comment">% B matrix for noise</span>
+        mu <span class="comment">% noise mean</span>
+        sigma <span class="comment">% noise variance</span>
+        dim  <span class="comment">% the dimension of the state space</span>
+
+        param <span class="comment">% any additional matrices to be shipped</span>
+
+        X <span class="comment">% bounded state space</span>
+        U <span class="comment">% bounded input space</span>
+        regions <span class="comment">% regions labelled with atomic propositions</span>
+        AP <span class="comment">% atomic propositions</span>
+        P <span class="comment">% the probability transition matrix.</span>
+
+
+    <span class="keyword">end</span>
+
+    <span class="keyword">methods</span>
+        <span class="keyword">function</span> obj = NonlinModel(f,C,Bw,mu,sigma,param)
+        <span class="comment">%   Nonlinear model with dynamics</span>
+        <span class="comment">%   x(t+1) = f(x(t), u(t)) + Bw w(t) with w(t)\sim N(mu, \sigma)</span>
+        <span class="comment">%         f = the deterministic function for the state update</span>
+        <span class="comment">%           f:X\times U -&gt; X</span>
+        <span class="comment">%         C = C matrix to map from state to to output space</span>
+        <span class="comment">%         Bw = B matrix for noise</span>
+        <span class="comment">%         mu = noise mean</span>
+        <span class="comment">%         sigma = noise variance</span>
+        <span class="comment">%         dim  = the dimension of the state space</span>
+        <span class="comment">%</span>
+        <span class="comment">%</span>
+        <span class="comment">% Examples</span>
+        <span class="comment">% A simple 2 dimensional model with one control input and one</span>
+        <span class="comment">% output:</span>
+        <span class="comment">%   C = [1, 1];</span>
+        <span class="comment">%   Bw = [0; 1];</span>
+        <span class="comment">%   model = NonlinModel(@vanderpol_f,C,Bw,[0;0], eye(2),param)</span>
+        <span class="comment">%</span>
+        <span class="comment">%     x = sym('x', [sysNonLin.dim 1]);</span>
+        <span class="comment">%     f1sym = x(1)+x(2)*sysNonLin.param.tau;</span>
+        <span class="comment">%     f2sym = x(2)+(-x(1)+(1-x(1)^2)*x(2))*sysNonLin.param.tau;</span>
+        <span class="comment">%     sysNonLin.fsym = [f1sym; f2sym];</span>
+        <span class="comment">%</span>
+        <span class="comment">%</span>
+        <span class="comment">% with function vanderpol_f defined below.</span>
+        <span class="comment">%   function xp = vanderpol_f(x, u,sys)</span>
+        <span class="comment">%     if nargin ~= 3</span>
+        <span class="comment">%         error('Invalid input !');</span>
+        <span class="comment">%     end</span>
+        <span class="comment">%</span>
+        <span class="comment">%     if size(x,1)~=2</span>
+        <span class="comment">%         error('Wrong size of x');</span>
+        <span class="comment">%     end</span>
+        <span class="comment">%     xp = zeros(size(x));</span>
+        <span class="comment">%</span>
+        <span class="comment">%     xp(1,:) = x(1,:) + sys.param.tau *x(2,:);</span>
+        <span class="comment">%     xp(2,:) = x(2,:)+ (-x(1,:) + (1-x(1,:).^2) .* x(2,:)) .* sys.param.tau + u;</span>
+        <span class="comment">%     end</span>
+        <span class="comment">%</span>
+        <span class="comment">% See also: LinModel</span>
+        <span class="comment">%</span>
+        <span class="comment">% Copyright 2021,   Birgit van Huijgevoort, Sofie Haesaert (s.haesaert@tue.nl),</span>
+
+            obj.f = f;
+            obj.C =  C;
+            obj.Bw = Bw;
+            obj.mu = mu;
+            obj.sigma = sigma;
+            obj.dim = size(Bw, 1);
+            obj.param = param;
+        <span class="keyword">end</span>
+
+
+        <span class="keyword">function</span> x_n = f_det(obj,x,u)
+            <span class="comment">%F compute the next states undisturbed by noise based on the deterministic/nominal dynamics</span>
+            x_n =   obj.f(x,u,obj);
+        <span class="keyword">end</span>
+
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+</pre><p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2022a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+classdef NonlinModel
+    %NONLINMODEL Class of nonlinear systems with noise on the transitions.
+    %   Nonlinear model with dynamics
+    %   x(t+1) = f(x(t), u(t)) + Bw w(t) with w(t)\sim N(mu, \sigma)
+    %         f = the deterministic function for the state update
+    %           f:X\times U -> X
+    %         C = C matrix to map from state to to output space
+    %         Bw = B matrix for noise
+    %         mu = noise mean
+    %         sigma = noise variance
+    %         dim  = the dimension of the state space
+    %
+    %   
+    % Examples 
+    % A simple 2 dimensional model with one control input and one
+    % output:
+    %   C = [1, 1]; 
+    %   Bw = [0; 1]; 
+    %   model = NonlinModel(@vanderpol_f,C,Bw,[0;0], eye(2),param)
+    %
+    %     x = sym('x', [sysNonLin.dim 1]);
+    %     f1sym = x(1)+x(2)*sysNonLin.param.tau;
+    %     f2sym = x(2)+(-x(1)+(1-x(1)^2)*x(2))*sysNonLin.param.tau;
+    %     sysNonLin.fsym = [f1sym; f2sym];
+    % 
+    % 
+    % with function vanderpol_f defined below.
+    %   function xp = vanderpol_f(x, u,sys)
+    %     if nargin ~= 3
+    %         error('Invalid input !');
+    %     end
+    % 
+    %     if size(x,1)~=2
+    %         error('Wrong size of x');
+    %     end
+    %     xp = zeros(size(x));
+    % 
+    %     xp(1,:) = x(1,:) + sys.param.tau *x(2,:);
+    %     xp(2,:) = x(2,:)+ (-x(1,:) + (1-x(1,:).^2) .* x(2,:)) .* sys.param.tau + u;
+    %     end
+    % 
+    % See also: LinModel
+    % 
+    % Copyright 2021,   Birgit van Huijgevoort, Sofie Haesaert
+    % (s.haesaert@tue.nl).
+
+
+    properties
+        type = "NonLin";
+        f % the deterministic function for the state update
+        fsym % same as f but symbolic
+        C % C matrix to map from state to to output space
+        Bw % B matrix for noise
+        mu % noise mean
+        sigma % noise variance
+        dim  % the dimension of the state space
+
+        param % any additional matrices to be shipped
+        
+        X % bounded state space  
+        U % bounded input space
+        regions % regions labelled with atomic propositions
+        AP % atomic propositions
+        P % the probability transition matrix.  
+        
+        
+    end
+    
+    methods
+        function obj = NonlinModel(f,C,Bw,mu,sigma,param)
+        %   Nonlinear model with dynamics
+        %   x(t+1) = f(x(t), u(t)) + Bw w(t) with w(t)\sim N(mu, \sigma)
+        %         f = the deterministic function for the state update
+        %           f:X\times U -> X
+        %         C = C matrix to map from state to to output space
+        %         Bw = B matrix for noise
+        %         mu = noise mean
+        %         sigma = noise variance
+        %         dim  = the dimension of the state space
+        %
+        %   
+        % Examples 
+        % A simple 2 dimensional model with one control input and one
+        % output:
+        %   C = [1, 1]; 
+        %   Bw = [0; 1]; 
+        %   model = NonlinModel(@vanderpol_f,C,Bw,[0;0], eye(2),param)
+        %
+        %     x = sym('x', [sysNonLin.dim 1]);
+        %     f1sym = x(1)+x(2)*sysNonLin.param.tau;
+        %     f2sym = x(2)+(-x(1)+(1-x(1)^2)*x(2))*sysNonLin.param.tau;
+        %     sysNonLin.fsym = [f1sym; f2sym];
+        % 
+        % 
+        % with function vanderpol_f defined below.
+        %   function xp = vanderpol_f(x, u,sys)
+        %     if nargin ~= 3
+        %         error('Invalid input !');
+        %     end
+        % 
+        %     if size(x,1)~=2
+        %         error('Wrong size of x');
+        %     end
+        %     xp = zeros(size(x));
+        % 
+        %     xp(1,:) = x(1,:) + sys.param.tau *x(2,:);
+        %     xp(2,:) = x(2,:)+ (-x(1,:) + (1-x(1,:).^2) .* x(2,:)) .* sys.param.tau + u;
+        %     end
+        % 
+        % See also: LinModel
+        % 
+        % Copyright 2021,   Birgit van Huijgevoort, Sofie Haesaert (s.haesaert@tue.nl), 
+
+            obj.f = f;
+            obj.C =  C;
+            obj.Bw = Bw;
+            obj.mu = mu;
+            obj.sigma = sigma;
+            obj.dim = size(Bw, 1);
+            obj.param = param;
+        end
+        
+                
+        function x_n = f_det(obj,x,u)
+            %F compute the next states undisturbed by noise based on the deterministic/nominal dynamics
+            x_n =   obj.f(x,u,obj);
+        end
+        
+    end
+end
+
+##### SOURCE END #####
+--></body></html>

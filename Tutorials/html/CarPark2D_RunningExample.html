@@ -1,0 +1,310 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>CarPark2D_RunningExample</title><meta name="generator" content="MATLAB 9.12"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2022-11-02"><meta name="DC.source" content="CarPark2D_RunningExample.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h1></h1><!--introduction--><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Running example, 2D car park case study</a></li><li><a href="#2">Specify system parameters and regions</a></li><li><a href="#3">Step 1 Translate the specification</a></li><li><a href="#4">Step 2 Finite-state abstraction</a></li><li><a href="#5">Step 3 Similarity quantification</a></li><li><a href="#6">Step 4 Synthesize a robust controller</a></li><li><a href="#7">Step 5 Control refinement</a></li><li><a href="#8">Step 6 Deployment</a></li><li><a href="#9">Show details on computation time and memory usage</a></li></ul></div><h2 id="1">Running example, 2D car park case study</h2><p>2D car park is an LTI systems of the form x(t+1) = Ax(t) + Bu(t) + Bw w(t) y(t) = Cx(t) + Du(t)</p><p>Expected runtime = approx 10 seconds</p><pre class="codeinput">clc
+clear
+close <span class="string">all</span>
+
+tStart = tic;
+disp(<span class="string">'Start car park 2D (running example) benchmark'</span>)
+</pre><h2 id="2">Specify system parameters and regions</h2><pre class="codeinput"><span class="comment">% Define system parameters</span>
+A = 0.9*eye(2);
+B = 0.7*eye(2);
+C = eye(2);
+D = zeros(2);
+Bw = eye(2);
+dim = length(A);
+
+<span class="comment">% Specify mean and variance of disturbance w(t)</span>
+mu = zeros(dim,1); <span class="comment">% mean of disturbance</span>
+sigma = eye(dim); <span class="comment">% variance of disturbance</span>
+
+<span class="comment">% Set up an LTI model</span>
+sysLTI = LinModel(A,B,C,D,Bw,mu,sigma);
+
+<span class="comment">% Define bounded state space</span>
+sysLTI.X = Polyhedron(combvec([-10,10],[-10,10])');
+<span class="comment">% Define bounded input space</span>
+sysLTI.U = Polyhedron(combvec([-1,1],[-1,1])');
+
+<span class="comment">% Specify regions for the specification</span>
+P1 = Polyhedron([4, -4; 4, 0; 10, 0; 10 -4]); <span class="comment">% parking region</span>
+P2 = Polyhedron([4, 0; 4, 4; 10, 4; 10 0]);  <span class="comment">% avoid region</span>
+
+<span class="comment">% Regions that get specific atomic propositions</span>
+sysLTI.regions = [P1;P2];
+<span class="comment">% Propositions corresponding to the regions</span>
+sysLTI.AP = {<span class="string">'p1'</span>, <span class="string">'p2'</span>};
+</pre><h2 id="3">Step 1 Translate the specification</h2><pre class="codeinput">t1start = tic;
+
+<span class="comment">% Define the scLTL specification</span>
+formula = <span class="string">'(!p2 U p1)'</span>;
+
+<span class="comment">% Translate the spec to a DFA</span>
+[DFA] = TranslateSpec(formula,sysLTI.AP);
+
+t1end = toc(t1start);
+</pre><h2 id="4">Step 2 Finite-state abstraction</h2><pre class="codeinput">t2start = tic;
+
+<span class="comment">% Construct abstract input space uhat</span>
+lu = 3;  <span class="comment">% number of abstract inputs in each direction</span>
+uhat = GridInputSpace(lu,sysLTI.U);
+
+<span class="comment">% Construct finite-state abstraction</span>
+l = [200, 200];  <span class="comment">% number of grid cells</span>
+tol=10^-6;
+sysAbs = FSabstraction(sysLTI,uhat,l,tol,DFA,<span class="string">'TensorComputation'</span>,true);
+
+t2end = toc(t2start);
+</pre><h2 id="5">Step 3 Similarity quantification</h2><pre class="codeinput">t3start = tic;
+
+<span class="comment">% Choose a value for epsilon</span>
+epsilon = 1.005;
+
+<span class="comment">% Quantify similarity</span>
+simRel = QuantifySim(sysLTI, sysAbs, epsilon);
+
+t3end = toc(t3start);
+</pre><h2 id="6">Step 4 Synthesize a robust controller</h2><pre class="codeinput">t4start = tic;
+
+<span class="comment">% Specify threshold for convergence error</span>
+thold = 1e-6;
+
+<span class="comment">% Synthesize an abstract robust controller</span>
+[satProb,pol] = SynthesizeRobustController(sysAbs, DFA, simRel, thold, true);
+
+t4end = toc(t4start);
+</pre><h2 id="7">Step 5 Control refinement</h2><pre class="codeinput">t5start = tic;
+
+<span class="comment">% Refine abstract controller to a continous-state controller</span>
+Controller = RefineController(satProb,pol,sysAbs,simRel,sysLTI,DFA);
+
+t5end = toc(t5start);
+</pre><h2 id="8">Step 6 Deployment</h2><pre class="codeinput">t6start = tic;
+
+x0 = [-4;-5]; <span class="comment">% initial state</span>
+N = 40;     <span class="comment">% time horizon</span>
+
+<span class="comment">% Simulate controlled system</span>
+xsim = ImplementController(x0,N,Controller);
+
+t6end = toc(t6start);
+</pre><h2 id="9">Show details on computation time and memory usage</h2><pre class="codeinput">tEnd = toc(tStart);
+
+<span class="comment">% Display computation time per step and total.</span>
+disp(<span class="string">' '</span>)
+disp([<span class="string">'Step 1: '</span>, mat2str(t1end,3), <span class="string">' seconds'</span>])
+disp([<span class="string">'Step 2: '</span>, mat2str(t2end,3), <span class="string">' seconds'</span>])
+disp([<span class="string">'Step 3: '</span>, mat2str(t3end,3), <span class="string">' seconds'</span>])
+disp([<span class="string">'Step 4: '</span>, mat2str(t4end,3), <span class="string">' seconds'</span>])
+disp([<span class="string">'Step 5: '</span>, mat2str(t5end,3), <span class="string">' seconds'</span>])
+disp([<span class="string">'Step 6: '</span>, mat2str(t6end,3), <span class="string">' seconds'</span>])
+disp(<span class="string">' '</span>)
+disp([<span class="string">'Total runtime = '</span>, mat2str(tEnd,3), <span class="string">' seconds'</span>])
+disp(<span class="string">' '</span>)
+<span class="comment">% Display total memory usage</span>
+d = whos();
+Mem = sum([d.bytes]);
+Mem = Mem*1e-6; <span class="comment">% memory usage in Mb</span>
+
+disp([<span class="string">'Memory usage: '</span>, mat2str(Mem), <span class="string">' Mb'</span>])
+
+disp(<span class="string">'Finished car park 2D (running example) benchmark'</span>)
+</pre><p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2022a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%%% Running example, 2D car park case study
+% 
+% 2D car park is an LTI systems of the form
+% x(t+1) = Ax(t) + Bu(t) + Bw w(t)
+% y(t) = Cx(t) + Du(t)
+%
+% Expected runtime = approx 10 seconds
+
+clc
+clear
+close all
+
+tStart = tic;
+disp('Start car park 2D (running example) benchmark')
+
+%% Specify system parameters and regions
+
+% Define system parameters
+A = 0.9*eye(2);
+B = 0.7*eye(2);
+C = eye(2);
+D = zeros(2);
+Bw = eye(2);
+dim = length(A);
+
+% Specify mean and variance of disturbance w(t) 
+mu = zeros(dim,1); % mean of disturbance
+sigma = eye(dim); % variance of disturbance
+
+% Set up an LTI model
+sysLTI = LinModel(A,B,C,D,Bw,mu,sigma);
+ 
+% Define bounded state space
+sysLTI.X = Polyhedron(combvec([-10,10],[-10,10])');
+% Define bounded input space
+sysLTI.U = Polyhedron(combvec([-1,1],[-1,1])');
+
+% Specify regions for the specification
+P1 = Polyhedron([4, -4; 4, 0; 10, 0; 10 -4]); % parking region
+P2 = Polyhedron([4, 0; 4, 4; 10, 4; 10 0]);  % avoid region
+
+% Regions that get specific atomic propositions
+sysLTI.regions = [P1;P2]; 
+% Propositions corresponding to the regions
+sysLTI.AP = {'p1', 'p2'}; 
+
+%% Step 1 Translate the specification
+t1start = tic;
+
+% Define the scLTL specification
+formula = '(!p2 U p1)';  
+
+% Translate the spec to a DFA
+[DFA] = TranslateSpec(formula,sysLTI.AP);
+
+t1end = toc(t1start);
+%% Step 2 Finite-state abstraction
+t2start = tic;
+
+% Construct abstract input space uhat
+lu = 3;  % number of abstract inputs in each direction
+uhat = GridInputSpace(lu,sysLTI.U); 
+
+% Construct finite-state abstraction
+l = [200, 200];  % number of grid cells 
+tol=10^-6;  
+sysAbs = FSabstraction(sysLTI,uhat,l,tol,DFA,'TensorComputation',true);
+
+t2end = toc(t2start);
+%% Step 3 Similarity quantification
+t3start = tic;
+
+% Choose a value for epsilon
+epsilon = 1.005;
+
+% Quantify similarity
+simRel = QuantifySim(sysLTI, sysAbs, epsilon);
+
+t3end = toc(t3start);
+%% Step 4 Synthesize a robust controller
+t4start = tic;
+
+% Specify threshold for convergence error
+thold = 1e-6;
+
+% Synthesize an abstract robust controller
+[satProb,pol] = SynthesizeRobustController(sysAbs, DFA, simRel, thold, true);
+
+t4end = toc(t4start);
+%% Step 5 Control refinement
+t5start = tic;
+
+% Refine abstract controller to a continous-state controller
+Controller = RefineController(satProb,pol,sysAbs,simRel,sysLTI,DFA);
+
+t5end = toc(t5start);
+%% Step 6 Deployment
+t6start = tic;
+
+x0 = [-4;-5]; % initial state
+N = 40;     % time horizon
+
+% Simulate controlled system
+xsim = ImplementController(x0,N,Controller);
+
+t6end = toc(t6start);
+%% Show details on computation time and memory usage
+tEnd = toc(tStart);
+
+% Display computation time per step and total.
+disp(' ')
+disp(['Step 1: ', mat2str(t1end,3), ' seconds'])
+disp(['Step 2: ', mat2str(t2end,3), ' seconds'])
+disp(['Step 3: ', mat2str(t3end,3), ' seconds'])
+disp(['Step 4: ', mat2str(t4end,3), ' seconds'])
+disp(['Step 5: ', mat2str(t5end,3), ' seconds'])
+disp(['Step 6: ', mat2str(t6end,3), ' seconds'])
+disp(' ')
+disp(['Total runtime = ', mat2str(tEnd,3), ' seconds']) 
+disp(' ')
+% Display total memory usage
+d = whos();
+Mem = sum([d.bytes]);
+Mem = Mem*1e-6; % memory usage in Mb
+
+disp(['Memory usage: ', mat2str(Mem), ' Mb'])
+
+disp('Finished car park 2D (running example) benchmark')
+##### SOURCE END #####
+--></body></html>

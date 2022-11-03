@@ -1,58 +1,83 @@
-function [D, K] = ComputeD(eps,sysPWA,mu,sigma,Bset_all,index,varargin)
+function [D, K] = ComputeD(eps,sysPWA,sysAbs,varargin)
 % Written by: Birgit van Huijgevoort
 % This code is based on the method developed in the paper "Similarity
 % quantification for linear stochastic systems as a set-theoretic control
 % problem" by B.C. van Huijgevoort and S. Haesaert
 
 % inputs:
-% epsilon - row vector with values of epsilon
-% sysLTI - LTI systems according to LinModel.m (or one partition of
-% PWAModel.m) in Model classes
-% mu - mean of Gaussian disturbance of original model
-% sigma - variance of Gaussian disturbance of original model
+% eps - row vector with values of epsilon
+% sysPWA - PWA system
+% sysAbs - finite-state abstraction of sysPWA
 % Bset - set of distubances in system x_Delta as a polyhedron
-% varargin{1} - number (1 or 2) that determines the interface function.
-% varargin{2} - upperbound on the part of the input for K(x-xhat)
-% varargin{3} - 'Gaussian' if a Gaussian distribution (default) is considered 
-%               'Uniform' if a uniform distribution is considered.
-
-% Interface function: 1. (default) u=uhat, 2. u=uhat+K(x-xhat)
+% varargin: 
+% 'interface' - specify the interface function by following 'interface'
+% with 0, or 1. Here 0. (default) u=uhat, 1. u=uhat+K(x-xhat)
+% 'states' - specify the states that are taken into account when computing D matrix
 
 % output:
-% delta: row vector with values of delta corresponding to epsilon vector
+% D - weithting matrix for simulation relation ||x-xhat||_D \leq \eps
+% K - corresponding matrix for interface function 1, (equal to zero for
+% interface option 0).
 
-%% 
+%% Initialization
 
-%if sigma~=1
-%    error('only sigma=1 allowed')
-%end
-%if mu~=0
-%    error('only mu=0 allowed')
-%end
-
-interfaceK = 1;
-
-if nargin>=7
-   if varargin{1} == 2
-        interfaceK = 1;
-        uuf = varargin{2};
-   elseif varargin{1} == 1
-       interfaceK = 0;
-       uuf = zeros(size(sysLTI.B,2),1);
-   else 
-       error(['6th input argument should be 1 or 2 depending ' ...
-           'on the desired interface function'])
-   end
-else
-  interfaceK = 0;
-  uuf = zeros(size(sysLTI.B,2),1);
+% Construct matrices for ComputeD
+for i = 1:sysPWA.Np
+    Kset(i) = sysPWA.Partition(i).K;
+    
+    Bset = plus(sysPWA.Partition(i).K,sysAbs.beta);
+    Bset = minVRep(Bset);
+    sysPWA.Partition(i).Bset = Bset;
+    Bset_all(i) = sysPWA.Partition(i).Bset;
 end
-%%
+
+% default values if unspecified
+interfaceK = 0;
+
+for i = 1:length(varargin)
+    % try to find 'interface'
+    if strcmp(varargin{i},'interface')
+        interfaceK = varargin{i+1};
+        if interfaceK
+            uuf = max(sysPWA.U{3}.V,[],'all');
+        else
+            uuf = zeros(dim,size(sysAbs.inputs,1));
+        end
+        break;
+    end
+end
+for i = 1:length(varargin)
+    % try to find 'states'
+    if strcmp(varargin{i},'states')
+        States = varargin{i+1};
+        % Compute state indices
+        AbstractStateIndex = [];
+        for i = 1:size(States,2)
+            S = States(:,i);
+            diff = S-sysAbs.states;
+            dis = sqrt(sum(diff.^2,1));
+            [~,j] = min(dis);
+            Shat = sysAbs.states(:,j);
+            AbstractStateIndex = [AbstractStateIndex, j];
+        end
+        index = sysAbs.Partition(AbstractStateIndex);
+        break; 
+    else
+        % Use 8 random states to compute D
+        index = linspace(1,sysPWA.Np);
+    end
+end
+
+
+
+%% Set up LMI
+
 dim = sysPWA.dim;
 Dinv = sdpvar(dim, dim, 'symmetric');
 LMI2 = [];
 
-%%
+%% Solve optimization problem
+
 for i = 1:length(index)
     PN = index(i);
     Bset = Bset_all(PN);
@@ -149,7 +174,7 @@ for i = 1:length(index)
         end
     end
 
-    assert(exist("LMIMin", "var"), "No feasible solution to LMIs found.")
+    assert(exist("LMIMin", "var"), "No feasible solution to LMIs found. Try increasing the number of grid cells or changing the value of epsilon.")
     LMI2 = [LMI2; LMIMin];
   
 end

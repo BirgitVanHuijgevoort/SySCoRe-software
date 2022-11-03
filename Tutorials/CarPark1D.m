@@ -1,13 +1,16 @@
+%%% 1D car park case study
+% 
+% 1D car park is an LTI systems of the form
+% x(t+1) = Ax(t) + Bu(t) + Bw w(t)
+% y(t) = Cx(t)
+%
+% Expected runtime = approx 5 seconds
+
 clc
 clear
 close all
 
-tStart = tic;
-
 %% Specify system parameters and regions
-% LTI systems of the form
-% x(t+1) = Ax(t) + Bu(t) + Bw w(t)
-% y(t) = Cx(t) + Du(t)
 
 % Define system parameters
 A = 0.9;
@@ -21,18 +24,20 @@ dim = length(A);
 mu = zeros(dim,1); % mean of disturbance
 sigma = eye(dim); % variance of disturbance
 
+% Set up an LTI model
 sysLTI = LinModel(A,B,C,D,Bw,mu,sigma);
  
 % Bounds on state space 
 x1l = -10;   % Lowerbound x1
 x1u = 10;   % Upperbound x1
+% Define bounded state space
 sysLTI.X = Polyhedron('lb', x1l, 'ub', x1u);
 
-% Bounds on  and input space
+% Bounds on input space
 ul = [-1];   % Lowerbound input u
 uu = [1];     % Upperbound input u
-%sysLTI.U = Polyhedron(combvec([ul(1),uu(1)],[ul(2),uu(2)])');
-sysLTI.U = [ul,uu];
+% Define bounded input space
+sysLTI.U = Polyhedron('lb', ul, 'ub', uu);
 
 % Specify regions for the specification
 P1 = [5 6];    % x1-coordinates
@@ -42,139 +47,65 @@ P2 = [6 10];    % x1-coordinates
 P2 = Polyhedron('lb', P2(1), 'ub', P2(2));
 
 sysLTI.regions = [P1;P2];
-sysLTI.AP = {'p1', 'p2'}; % with the corresponding atomic propositions
+sysLTI.AP = {'p1', 'p2'}; % the corresponding atomic propositions
 
 Plot_sysLTI(sysLTI)
 
-%% Synthesize scLTL formula (or input DFA yourself)
-%%% use LTL2BA and check if determinstic and accepting state with loop with 1.
-% input: (sc)LTL formula and atomic propositions (see readme in folder
-% LTL2BA)
-% output: struct DFA containing (among other) the transitions
+%% Step 1: Translate the specification
 
+% Define the scLTL specification
 formula = '(!p2 U p1)';  % p1 = parking, p2 = avoid region
-% formula should use atomic propositions in sysLTI.AP. 
 
-% Make sure your current folder is the main SySCoRe folder
+% Translate the spec to a DFA
+%%% Make sure your current folder is the main SySCoRe folder
 [DFA] = TranslateSpec(formula,sysLTI.AP);
 
-%% Construct abstract model by gridding it
-disp('start gridding');
+%% Step 2 Finite-state abstraction
 tGridStart = tic;
-% input: sysLTI, sigma, space bounds for input (controller) and state space
 
-% Specify division of input space for actuation and feedback
-ula = 1*ul;   % part of input for actuation (lowerbound)
-uua = 1*uu;
-ulf = ul-ula;   % part of input for feedback (lowerbound)
-uuf = uu-uua;
+% Construct abstract input space
+lu = 7; % number of abstract inputs
+uhat = GridInputSpace(lu,sysLTI.U); % abstract input space
 
-lu = 7;
-uhat = combvec(linspace(ula,uua,lu));
-
-l = 200;  % number of grid cells in x1- and x2-direction
+% Construct finite-state abstraction
+l = 200;  % number of grid cells
 tol=10^-6;
-sysAbs = Gridding(sysLTI,uhat,l,tol);
-sysAbs = Gridding(sysLTI,uhat,l,tol,'TensorComputation', true);
-
-% Save some extra system parameters into struct
-sysAbs.orig = sysLTI;
-
-label = zeros(1,prod(l));
-[label(1:prod(l))] = deal(1);
-inP1 = (sysAbs.states>min(P1.V))& (sysAbs.states<max(P1.V));
-inP2 = (sysAbs.states>min(P2.V))& (sysAbs.states<max(P2.V));
-[label(inP1)] = deal(3);
-[label(inP2)] = deal(2);
-sysAbs.labels = label;
+sysAbs = FSabstraction(sysLTI,uhat,l,tol,DFA);
 
 tGridEnd = toc(tGridStart);
-disp(['---> finished gridding in ', num2str(tGridEnd), ' seconds.'])
-
-%% Quantify similarity
-disp('Quantify similarity');
+%% Step 3 Similarity quantification
 tSimStart = tic;
 
+% specify output deviation epsilon
 epsilon = 0.2;
 
-[rel, K] = QuantifySim(sysLTI, sysAbs, epsilon, sysLTI.mu,sysLTI.sigma,sysAbs.beta);
+% Quantify similarity 
+% interface function u = uhat
+[rel, ~] = QuantifySim(sysLTI, sysAbs, epsilon);
 
 tSimEnd = toc(tSimStart);
 
 disp(['delta = ', num2str(rel.delta), ', epsilon = ', num2str(rel.epsilon) ])
-disp(['---> finished quantifying similarity in ', num2str(tSimEnd), ' seconds'] )
+%% Step 4 Synthesize a robust controller
 
-%% Synthesize controller
-disp('start computing robust controller')
+% Specify threshold for reaching convergence
+thold = 1e-6;    
 
-N = 60;     % time horizon
-[ satProp,pol] = SynthesizeRobustController(sysAbs,DFA, rel, N, true);
+% Synthesize an abstract robust controller
+[satProb, pol] = SynthesizeRobustController(sysAbs,DFA, rel, thold, true);
 
-tEnd = toc(tStart);
-disp(['Total runtime = ', mat2str(tEnd)])
+% Plot satisfaction probability
+plotSatProb(satProb, sysAbs, 'initial', DFA);
 
-%% Start simulation
+%% Step 5 Control refinement
+
+% Refine abstract controller to a continous-state controller
+Controller = RefineController(satProb,pol,sysAbs,rel,sysLTI,DFA);
+
+%% Step 6 Implementation
 x0 = -2;
-xsim = x0;
-indexing = 1:length(sysAbs.states);
+N = 40;     % time horizon
 
-% find initial abstract state
-diff = abs(x0.*ones(size(sysAbs.states))-sysAbs.states);
-inR = sqrt(diff.*rel.R.*diff)<=epsilon;
-indices_valid = indexing(inR);
-[value_max, index_aux] = max(satProp(inR)); 
-j = indices_valid(index_aux); % find maximizing index of abstract state    
-xhat0 = sysAbs.states(:,j);
-xhatsim = [xhat0];
-uhat = pol(:,j);
-
-disp([' Satisfaction probability at xhat0 = ', num2str(satProp(j))])
-
-N = 40;
-
-u = uhat+K*(x0-xhat0);
-for i = 1:N
-    w = sysLTI.mu + sqrt(sysLTI.sigma).*randn(1);
-    % compute next state
-    xnext = sysLTI.A*xsim(:,i)+sysLTI.B*u+sysLTI.Bw*w;
-    xsim = [xsim, xnext];
-
-    % stop if you have reached the parking region or violated the spec
-    if xnext>min(P1.V) & xnext<max(P1.V)
-        disp(['Reached parking area ','after ', num2str(i), ' time instances']);
-        break;
-    elseif xnext>min(P2.V) & xnext<max(P2.V)
-        disp(['Violated specification']);
-        break;
-    end
-
-    % find next abstract state, by looking at the maximizer in R wrt the value
-    % function. 
-  
-    inR = rel.inR(xsim(:,end),sysAbs.states);
-    indices_valid = indexing(inR);
-    [value_max, index_aux] = max(satProp(inR)); 
-    j = indices_valid(index_aux); % find maximizing index of abstract state
-    xhatnext = sysAbs.states(:,j);
-
-    % compute next input
-    uhat = [pol(:,j)];
-    u = uhat+K*(xnext-xhatnext);
-    
-    if i==N
-        disp(['Did not reach parking after ', num2str(N), ' time instance.'])
-    end
-end
-
-
-%% Show results
-figure;
-plot(sysAbs.states,satProp)
-xlabel('x')
-title('Satisfaction Probability')
-
-ypoints = 1:length(xsim);
-Plot_sysLTI(sysLTI)
-hold on
-plot(xsim,ypoints)
-ylim([-1 length(xsim)])
+% Simulate controlled system
+xsim = ImplementController(x0,N,Controller);
+plotTrajectories(xsim, [x1l, x1u], sysLTI);

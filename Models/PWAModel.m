@@ -39,9 +39,6 @@ classdef PWAModel
 % Partition(1).Dynamics.dim = sysNonLin.dim;
 %  
 % Copyright 2022 Birgit van Huijgevoort, b.c.v.huijgevoort@tue.nl
-
-    
-    % TODO: finish setting up the help files
     
     properties
         type = "PWA";
@@ -53,6 +50,8 @@ classdef PWAModel
         mu % noise mean
         sigma % noise variance
         dim  % the dimension of the state space
+        orig % original nonlinear model
+        N % number of partitions in each direction used to obtain PWA approximation
         
         X % state space
         U % input space 
@@ -124,6 +123,32 @@ classdef PWAModel
             % state x_next based on x_current, u_current, and based on the
             % model obj. 
             x_n =   obj.f(x,u,obj);
+        end
+
+        function [x_n, varargout] = f_stoch(obj, x, u, Pr)
+            %F_STOCH computes the next states disturbed by noise 
+            % The next state is based on the stochastic
+            % dynamics for a PWA model and is computed as
+            % x(t+1) = A_i x(t) + B_i u(t) + Bw_i w(t) + a_i
+            % where w(t) is sampled at random from it's specified
+            % underlying distribution and i is the partition number
+            %
+            % x_next = f_stoch(obj, x_current, u_current, Partition number) computes the next
+            % state x_next based on x_current, u_current, partititon number  and based on the
+            % model obj. 
+            
+            w = mvnrnd(obj.mu, obj.sigma, 1)'; % Sample noise
+              
+            % Get corresponding matrices
+            A_i = obj.Partition(Pr).Dynamics.A;
+            B_i = obj.Partition(Pr).Dynamics.B;
+            Bw_i = obj.Partition(Pr).Dynamics.Bw;
+            a_i = obj.Partition(Pr).Dynamics.a;
+
+            % Determine next state
+            x_n = A_i*x + B_i*u + a_i + Bw_i*w;
+            varargout{1} = w;
+            
         end
 
         function xp = PWA_f(x, u, sys)

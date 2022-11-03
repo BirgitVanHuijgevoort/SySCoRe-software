@@ -1,0 +1,347 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>VanderPol</title><meta name="generator" content="MATLAB 9.12"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2022-11-02"><meta name="DC.source" content="VanderPol.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h1></h1><!--introduction--><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">2D nonlinear case study of a van der Pol oscillator</a></li><li><a href="#2">Specify system parameters and regions</a></li><li><a href="#3">Stay in bounded region</a></li><li><a href="#4">Reach in bounded region</a></li><li><a href="#5">0. (default)    u = uhat</a></li><li><a href="#6">1.              u = uhat + K(x-xhat)</a></li><li><a href="#7">Step 1 Translate the specification</a></li><li><a href="#8">Step 2 Finite-state abstraction</a></li><li><a href="#9">Abstraction part 1: PWA approximation</a></li><li><a href="#10">Abstraction part 2: finite-state abstraction</a></li><li><a href="#11">Step 3 Similarity quantification</a></li><li><a href="#12">For the vdPol oscillator, points on the limit cycle are interesting.</a></li><li><a href="#13">Step 4 Synthesize a robust controller</a></li><li><a href="#14">Step 5 Control refinement</a></li><li><a href="#15">Step 6 Deployment</a></li><li><a href="#16">Show details on computation time and memory usage</a></li><li><a href="#17">Plot satisfaction probability</a></li></ul></div><h2 id="1">2D nonlinear case study of a van der Pol oscillator</h2><p>of the form x(t+1) = f(x,u) + Bw w(t) y(t) = Cx(t) In this case the input enters in an affine fashion. The full dynamics are given in Vanderpol.m in the folder Case study</p><p>Be aware: expected runtime = approx 60 minutes (depending on the number of cores in your computer)</p><pre class="codeinput">clear <span class="string">all</span>
+clc
+close <span class="string">all</span>
+
+run <span class="string">Install.m</span>
+
+tStart = tic;
+disp(<span class="string">'Start Van der Pol Oscillator benchmark'</span>)
+</pre><h2 id="2">Specify system parameters and regions</h2><pre class="codeinput"><span class="comment">% Load model into sysNonLin</span>
+Vanderpol
+
+<span class="comment">% Bounds on state space</span>
+x1l = -4;   <span class="comment">% Lowerbound x1</span>
+x1u = 4;   <span class="comment">% Upperbound x1</span>
+x2l = -4;   <span class="comment">% Lowerbound x2</span>
+x2u = 4;   <span class="comment">% Upperbound x2</span>
+sysNonLin.X = Polyhedron(combvec([x1l,x1u],[x2l,x2u])');
+<span class="comment">% Bounds on input space</span>
+ul = [-1];   <span class="comment">% Lowerbound input u</span>
+uu = [1];     <span class="comment">% Upperbound input u</span>
+sysNonLin.U = Polyhedron([ul(1),uu(1)]');
+
+<span class="comment">% Specify regions for the specification</span>
+</pre><h2 id="3">Stay in bounded region</h2><pre class="codeinput">P1 = sysNonLin.X;
+</pre><h2 id="4">Reach in bounded region</h2><pre class="codeinput">P2 = Polyhedron(combvec([-1.4,-0.7],[-2.9,-2])');
+
+sysNonLin.regions = [P1;P2]; <span class="comment">% regions that get specific atomic propositions</span>
+sysNonLin.AP = {<span class="string">'p1'</span>, <span class="string">'p2'</span>}; <span class="comment">% with the corresponding atomic propositions</span>
+
+<span class="comment">% Select an interface function:</span>
+</pre><h2 id="5">0. (default)    u = uhat</h2><h2 id="6">1.              u = uhat + K(x-xhat)</h2><pre class="codeinput">int_f = 1;
+</pre><h2 id="7">Step 1 Translate the specification</h2><pre class="codeinput">t1start = tic;
+
+<span class="comment">% Define scLTL formula</span>
+formula = <span class="string">'(p1 U p2)'</span>;  <span class="comment">% p1 = safe region, p2 = target region</span>
+
+<span class="comment">% Translate formula to deterministic finite automaton</span>
+[DFA] = TranslateSpec(formula,sysNonLin.AP);
+
+t1end = toc(t1start);
+</pre><h2 id="8">Step 2 Finite-state abstraction</h2><pre class="codeinput">t2start = tic;
+</pre><h2 id="9">Abstraction part 1: PWA approximation</h2><p>Define SQUARE partitions</p><pre class="codeinput">Np = [41 41]; <span class="comment">% number of grid points in each direction (first state space, then if desired input space)</span>
+
+<span class="comment">% Perform PWA approximation and quantify difference between original model</span>
+<span class="comment">% and PWA approximation</span>
+[sysPWA] = PWAapproximation(sysNonLin,Np);
+</pre><h2 id="10">Abstraction part 2: finite-state abstraction</h2><pre class="codeinput"><span class="comment">% Construct abstract input space</span>
+lu = 3; <span class="comment">% number of abstract inputs in each direction</span>
+[uhat,sysPWA.U] = GridInputSpace(lu,sysPWA.U,<span class="string">'interface'</span>,int_f,0.6,0.4, <span class="string">'order'</span>); <span class="comment">% abstract input space</span>
+
+<span class="comment">% Construct finite-state abstraction</span>
+l = [600, 600];  <span class="comment">% number of grid cells in x1- and x2-direction</span>
+tol = 10^-8;
+sysAbs = FSabstraction(sysPWA,uhat,l,tol,DFA,<span class="string">'TensorComputation'</span>, true);
+
+
+t2end = toc(t2start);
+</pre><h2 id="11">Step 3 Similarity quantification</h2><pre class="codeinput">t3start = tic;
+
+<span class="comment">% Set a value for epsilon</span>
+epsilon = 0.1;
+
+<span class="comment">% Compute a suitable weighting matrix D for simulation relation</span>
+<span class="comment">% ||x-xhat||_D \leq \epsilon</span>
+<span class="comment">% States that are taken into account when computing D matrix</span>
+</pre><h2 id="12">For the vdPol oscillator, points on the limit cycle are interesting.</h2><pre class="codeinput">States = [1/8*x1l, 6/10*x2u; 5/7*x1u, 5/17*x2u; 2/13*x1u, 5/9*x2l; 3/4*x1l, 1/7*x2l; 0,0]';
+[D, ~] = ComputeD(epsilon,sysPWA,sysAbs,<span class="string">'interface'</span>,int_f,<span class="string">'states'</span>,States);
+
+<span class="comment">% Quantify similarity</span>
+[rel, sysPWA] = QuantifySim(sysPWA, sysAbs, epsilon, <span class="string">'interface'</span>, int_f, <span class="string">'weighting'</span>, D, <span class="string">'fast'</span>, 0);
+
+
+t3end = toc(t3start);
+</pre><h2 id="13">Step 4 Synthesize a robust controller</h2><pre class="codeinput">t4start = tic;
+
+<span class="comment">% Specify threshold</span>
+thold = 1e-6;
+
+<span class="comment">% Synthesize an abstract robust controller</span>
+[satProb,pol] = SynthesizeRobustController(sysAbs, DFA, rel, thold, false);
+
+t4end = toc(t4start);
+</pre><h2 id="14">Step 5 Control refinement</h2><pre class="codeinput">t5start = tic;
+
+<span class="comment">% Refine abstract controller to a continous-state controller</span>
+Controller = RefineController(satProb,pol,sysAbs,rel,sysPWA,DFA,int_f);
+
+t5end = toc(t5start);
+</pre><h2 id="15">Step 6 Deployment</h2><pre class="codeinput">t6start = tic;
+
+x0 = [-1;1]; <span class="comment">% initial state</span>
+N = 60;     <span class="comment">% time horizon</span>
+
+<span class="comment">% Simulate controlled system</span>
+xsim = ImplementController(x0,N,Controller);
+<span class="comment">%plotTrajectories(xsim, [x1l,x1u;x2l,x2u], sysPWA);</span>
+
+t6end = toc(t6start);
+</pre><h2 id="16">Show details on computation time and memory usage</h2><pre class="codeinput">tEnd = toc(tStart);
+
+<span class="comment">% Display computation time per step and total.</span>
+disp(<span class="string">' '</span>)
+disp([<span class="string">'Step 1: '</span>, mat2str(t1end,3), <span class="string">' seconds'</span>])
+disp([<span class="string">'Step 2: '</span>, mat2str(t2end,3), <span class="string">' seconds'</span>])
+disp([<span class="string">'Step 3: '</span>, mat2str(t3end,3), <span class="string">' seconds'</span>])
+disp([<span class="string">'Step 4: '</span>, mat2str(t4end,3), <span class="string">' seconds'</span>])
+disp([<span class="string">'Step 5: '</span>, mat2str(t5end,3), <span class="string">' seconds'</span>])
+disp([<span class="string">'Step 6: '</span>, mat2str(t6end,3), <span class="string">' seconds'</span>])
+disp(<span class="string">' '</span>)
+disp([<span class="string">'Total runtime = '</span>, mat2str(tEnd,3), <span class="string">' seconds'</span>])
+disp(<span class="string">' '</span>)
+<span class="comment">% Display total memory usage</span>
+d = whos();
+Mem = sum([d.bytes]);
+Mem = Mem*1e-6; <span class="comment">% memory usage in Mb</span>
+
+disp([<span class="string">'Memory usage: '</span>, mat2str(Mem), <span class="string">' Mb'</span>])
+</pre><h2 id="17">Plot satisfaction probability</h2><pre class="codeinput">plotSatProb(satProb, sysAbs, <span class="string">'initial'</span>, DFA);
+
+disp(<span class="string">'Finished Van der Pol Oscillator benchmark'</span>)
+</pre><p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2022a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%%% 2D nonlinear case study of a van der Pol oscillator 
+% of the form
+% x(t+1) = f(x,u) + Bw w(t)
+% y(t) = Cx(t)
+% In this case the input enters in an affine fashion. The full dynamics are
+% given in Vanderpol.m in the folder Case study
+%
+% Be aware: expected runtime = approx 60 minutes (depending on the number
+% of cores in your computer)
+
+clear all
+clc
+close all
+
+run Install.m
+
+tStart = tic;
+disp('Start Van der Pol Oscillator benchmark')
+
+%% Specify system parameters and regions
+
+% Load model into sysNonLin
+Vanderpol
+
+% Bounds on state space 
+x1l = -4;   % Lowerbound x1
+x1u = 4;   % Upperbound x1
+x2l = -4;   % Lowerbound x2
+x2u = 4;   % Upperbound x2
+sysNonLin.X = Polyhedron(combvec([x1l,x1u],[x2l,x2u])');
+% Bounds on input space
+ul = [-1];   % Lowerbound input u
+uu = [1];     % Upperbound input u
+sysNonLin.U = Polyhedron([ul(1),uu(1)]');
+
+% Specify regions for the specification
+%%% Stay in bounded region
+P1 = sysNonLin.X;
+%%% Reach in bounded region
+P2 = Polyhedron(combvec([-1.4,-0.7],[-2.9,-2])');
+
+sysNonLin.regions = [P1;P2]; % regions that get specific atomic propositions
+sysNonLin.AP = {'p1', 'p2'}; % with the corresponding atomic propositions
+
+% Select an interface function:
+%%% 0. (default)    u = uhat
+%%% 1.              u = uhat + K(x-xhat)
+int_f = 1;
+
+%% Step 1 Translate the specification
+t1start = tic;
+
+% Define scLTL formula 
+formula = '(p1 U p2)';  % p1 = safe region, p2 = target region
+ 
+% Translate formula to deterministic finite automaton 
+[DFA] = TranslateSpec(formula,sysNonLin.AP);
+
+t1end = toc(t1start);
+%% Step 2 Finite-state abstraction
+t2start = tic;
+
+%% Abstraction part 1: PWA approximation   
+% Define SQUARE partitions
+Np = [41 41]; % number of grid points in each direction (first state space, then if desired input space)
+
+% Perform PWA approximation and quantify difference between original model
+% and PWA approximation
+[sysPWA] = PWAapproximation(sysNonLin,Np);
+
+%% Abstraction part 2: finite-state abstraction
+
+% Construct abstract input space
+lu = 3; % number of abstract inputs in each direction
+[uhat,sysPWA.U] = GridInputSpace(lu,sysPWA.U,'interface',int_f,0.6,0.4, 'order'); % abstract input space
+
+% Construct finite-state abstraction
+l = [600, 600];  % number of grid cells in x1- and x2-direction
+tol = 10^-8;
+sysAbs = FSabstraction(sysPWA,uhat,l,tol,DFA,'TensorComputation', true);
+
+
+t2end = toc(t2start);
+%% Step 3 Similarity quantification
+t3start = tic;
+
+% Set a value for epsilon
+epsilon = 0.1;
+
+% Compute a suitable weighting matrix D for simulation relation 
+% ||x-xhat||_D \leq \epsilon
+% States that are taken into account when computing D matrix
+%%% For the vdPol oscillator, points on the limit cycle are interesting.
+States = [1/8*x1l, 6/10*x2u; 5/7*x1u, 5/17*x2u; 2/13*x1u, 5/9*x2l; 3/4*x1l, 1/7*x2l; 0,0]';
+[D, ~] = ComputeD(epsilon,sysPWA,sysAbs,'interface',int_f,'states',States);
+
+% Quantify similarity
+[rel, sysPWA] = QuantifySim(sysPWA, sysAbs, epsilon, 'interface', int_f, 'weighting', D, 'fast', 0);
+
+
+t3end = toc(t3start);
+%% Step 4 Synthesize a robust controller
+t4start = tic;
+
+% Specify threshold
+thold = 1e-6;
+
+% Synthesize an abstract robust controller
+[satProb,pol] = SynthesizeRobustController(sysAbs, DFA, rel, thold, false);
+
+t4end = toc(t4start);
+%% Step 5 Control refinement
+t5start = tic;
+
+% Refine abstract controller to a continous-state controller
+Controller = RefineController(satProb,pol,sysAbs,rel,sysPWA,DFA,int_f);
+
+t5end = toc(t5start);
+%% Step 6 Deployment
+t6start = tic;
+
+x0 = [-1;1]; % initial state
+N = 60;     % time horizon
+
+% Simulate controlled system
+xsim = ImplementController(x0,N,Controller);
+%plotTrajectories(xsim, [x1l,x1u;x2l,x2u], sysPWA);
+
+t6end = toc(t6start);
+%% Show details on computation time and memory usage
+tEnd = toc(tStart);
+
+% Display computation time per step and total.
+disp(' ')
+disp(['Step 1: ', mat2str(t1end,3), ' seconds'])
+disp(['Step 2: ', mat2str(t2end,3), ' seconds'])
+disp(['Step 3: ', mat2str(t3end,3), ' seconds'])
+disp(['Step 4: ', mat2str(t4end,3), ' seconds'])
+disp(['Step 5: ', mat2str(t5end,3), ' seconds'])
+disp(['Step 6: ', mat2str(t6end,3), ' seconds'])
+disp(' ')
+disp(['Total runtime = ', mat2str(tEnd,3), ' seconds']) 
+disp(' ')
+% Display total memory usage
+d = whos();
+Mem = sum([d.bytes]);
+Mem = Mem*1e-6; % memory usage in Mb
+
+disp(['Memory usage: ', mat2str(Mem), ' Mb'])
+
+%% Plot satisfaction probability
+plotSatProb(satProb, sysAbs, 'initial', DFA);
+
+disp('Finished Van der Pol Oscillator benchmark')
+##### SOURCE END #####
+--></body></html>
