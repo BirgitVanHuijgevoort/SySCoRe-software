@@ -10,7 +10,7 @@ See the folder doc for full documentation and a GettingStarted file.
 This toolbox is created by: Birgit van Huijgevoort, Oliver Schön, Sadegh Soudjani and Sofie Haesaert.
 
 ## 1. Installation
-- Install MATLAB toolboxes Statistics and Machine Learning Toolbox and Deep Learning Toolbox
+- Install MATLAB toolboxes Statistics and Machine Learning, Deep Learning, and Symbolic Math
 - Install the mpt toolbox to be able to work with the Polyhedrons. Follow: https://www.mpt3.org/Main/Installation
 - Ensure that you also install SeDuMi and/or MOSEK solvers for YALMIP.
 - Install the Tensor toolbox. Follow: https://www.tensortoolbox.org
