@@ -95,7 +95,7 @@ States = [1/8*x1l, 6/10*x2u; 5/7*x1u, 5/17*x2u; 2/13*x1u, 5/9*x2l; 3/4*x1l, 1/7*
 [D, ~] = ComputeD(epsilon,sysPWA,sysAbs,'interface',int_f,'states',States);
 
 % Quantify similarity
-[rel, sysPWA] = QuantifySim(sysPWA, sysAbs, epsilon, 'interface', int_f, 'weighting', D, 'fast', 0);
+[rel, sysPWA] = QuantifySim(sysPWA, sysAbs, epsilon, 'interface', int_f, 'weighting', D);
 
 
 t3end = toc(t3start);
