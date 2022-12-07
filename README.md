@@ -63,9 +63,9 @@ Error when converting LTL to Buchi
 Output argument "B" (and possibly others) not assigned a value in the execution with "create_buchi" function.
 -----
 There are multiple reasons this error occurs:
-a) you are not in the root folder when running a script. Make sure that your current location is the SySCoRe folder (instead of for example the Turorials folder).
-b) not all folders are added to the path. Verify if the folder SySCoRe and all subfolders are in your path. You can add them to your path by right-clicking on the SySCoRe folder and click "Add to path" > "Selected Folders and Subfolders". If you want to save this path, type savepath in the Command Window. 
-c) you do not have access to the executable. To verify this, go to your SySCoRe installation and navigate to the folder SySCoRe/Specification/LTL2BA/ltl2ba. There should be an executable file called ltl2ba. Verify that you have read and write access to this file. For more info on how to do this on a Mac go to: https://macpaw.com/how-to/permission-denied-terminal .
+- you are not in the root folder when running a script. Make sure that your current location is the SySCoRe folder (instead of for example the Turorials folder).
+- not all folders are added to the path. Verify if the folder SySCoRe and all subfolders are in your path. You can add them to your path by right-clicking on the SySCoRe folder and click "Add to path" > "Selected Folders and Subfolders". If you want to save this path, type savepath in the Command Window. 
+- you do not have access to the executable. To verify this, go to your SySCoRe installation and navigate to the folder SySCoRe/Specification/LTL2BA/ltl2ba. There should be an executable file called ltl2ba. Verify that you have read and write access to this file. For more info on how to do this on a Mac go to: https://macpaw.com/how-to/permission-denied-terminal .
 
 ## References
 - van Huijgevoort, B. C., & Haesaert, S. (2020). Similarity quantification for linear stochastic systems: A coupling compensator approach. Automatica, 144, 110476.
