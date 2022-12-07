@@ -58,10 +58,10 @@ Compute a piecewise-affine approximation using
 
 ## 4. Common issues
 The most common error is the following:
-----
+
 Error when converting LTL to Buchi
 Output argument "B" (and possibly others) not assigned a value in the execution with "create_buchi" function.
------
+
 There are multiple reasons this error occurs:
 - you are not in the root folder when running a script. Make sure that your current location is the SySCoRe folder (instead of for example the Turorials folder).
 - not all folders are added to the path. Verify if the folder SySCoRe and all subfolders are in your path. You can add them to your path by right-clicking on the SySCoRe folder and click "Add to path" > "Selected Folders and Subfolders". If you want to save this path, type savepath in the Command Window. 
