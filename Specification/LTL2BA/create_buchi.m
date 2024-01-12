@@ -34,22 +34,12 @@ formula=regexprep(formula, 'G', '[]');
 
 currentFile = mfilename( 'fullpath' );
 [pathstr,~,~] = fileparts( currentFile );
-
 [s,r]=system([fullfile( './Specification/LTL2BA', '/ltl2ba/ltl2ba' ),' -f "' formula '"']); %sintax for calling ltl2ba.exe (located in subdir .\ltl2ba); use full description result (-d)
-                                                        %example of run:
-                                                        %[s,r]=dos('ltl2ba
-                                                        %-d -f "<> p1"');
-                                                        %%LTL 2 Buchi for
-                                                        %our formula
-%assert(s~=0, string(r)) % Check whether successful
-% s = error code, s=0 is a successfull one
-% r = output string that includes the Buchi Automaton  
-
+                                                        
 % s = error code, s=0 is a successfull one
 % r = output string that includes the Buchi Automaton
 if s~=0 %error
-    fprintf('\n Error when converting LTL to Buchi\n')
-    return
+    error('Error when converting LTL to Buchi\n%s', r)
 end
 
 %s=0, conversion successfull
@@ -63,7 +53,7 @@ str2=[char(10), 'never {'];    %second string for match (end of interesting "zon
 %remove from beginning until line contained by str1 (including it), and
 %from beginning of str2 to end
 r([1:findstr(r,str2)+length(str2)])=[];
-%disp(r)
+disp(r)
 
 % we have a string like: "state x
 %                         p1 -> state_label . . . state accept_** . . . "
@@ -143,31 +133,36 @@ for i=1:states_no
                                                      %appears or not)
         B.prop{i,k} = prop;
 
-        atom_pr=regexp(prop,'([!p]+\d+)','tokens'); %separate in atomic propositions (possibly preceded by !)
-        atom_pr=[atom_pr{:}];
-  
-        labels=sig;  %will store labels of elements of alphabet_set that enable current transition (respecting expression)
-                     %start with labels for whole alphabet_set, because
-                     %we'll use intersections when updating vector "labels"
-    
-        for ap=1:length(atom_pr) %for each atomic prop, modify vector "labels"
-            if isempty(findstr(atom_pr{ap},'!'))   %current atomic prop is not negated, so we keep ALL subsets that contain it,
-                                                   %not only the subset
-                                                   %equal with current
-                                                   %atomic proposition
-                            %use intersections because atomic propositions
-                            %(possibly negated) are linked only by & (AND)
-                            %operator
-                labels=intersect(labels, find( cellfun( 'isempty', regexp(Alph_s,atom_pr{ap}) ) == 0 ));    %indices of subsets including current atomic prop.
-            else    %negated, find all subsets that does NOT contain the current atomic proposition
-                labels=intersect(labels, find( cellfun( 'isempty', regexp(Alph_s,atom_pr{ap}(2:end)) ) ~= 0 )); %add indices of all other subsets
+        
+        % split over or operations
+        props_or = regexp(prop, '\|\|','split');
+        for index = 1:length(props_or)
+            atom_pr=regexp(props_or{index},'([!p]+\d+)','tokens'); %separate in atomic propositions (possibly preceded by !)
+            atom_pr=[atom_pr{:}];
+      
+            labels=sig;  %will store labels of elements of alphabet_set that enable current transition (respecting expression)
+                         %start with labels for whole alphabet_set, because
+                         %we'll use intersections when updating vector "labels"
+        
+            for ap=1:length(atom_pr) %for each atomic prop, modify vector "labels"
+                if isempty(findstr(atom_pr{ap},'!'))   %current atomic prop is not negated, so we keep ALL subsets that contain it,
+                                                       %not only the subset
+                                                       %equal with current
+                                                       %atomic proposition
+                                %use intersections because atomic propositions
+                                %(possibly negated) are linked only by & (AND)
+                                %operator
+                    labels=intersect(labels, find( cellfun( 'isempty', regexp(Alph_s,atom_pr{ap}) ) == 0 ));    %indices of subsets including current atomic prop.
+                else    %negated, find all subsets that does NOT contain the current atomic proposition
+                    labels=intersect(labels, find( cellfun( 'isempty', regexp(Alph_s,atom_pr{ap}(2:end)) ) ~= 0 )); %add indices of all other subsets
+                end
             end
-        end
-
-        B.trans{i,k}=union(B.trans{i,k},labels);    %add current labels to current transitions (transition s_i -> s_k can be captured by more rows
-                                                    %(equivalent with OR
-                                                    %operator between
-                                                    %propositions)
+    
+            B.trans{i,k}=union(B.trans{i,k},labels);    %add current labels to current transitions (transition s_i -> s_k can be captured by more rows
+                                                        %(equivalent with OR
+                                                        %operator between
+                                                        %propositions)
+        end 
     end
 end
 
