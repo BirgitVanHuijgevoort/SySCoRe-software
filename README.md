@@ -68,6 +68,7 @@ There are multiple reasons this error occurs:
 - you do not have access to the executable. To verify this, go to your SySCoRe installation and navigate to the folder SySCoRe/Specification/LTL2BA/ltl2ba. There should be an executable file called ltl2ba. Verify that you have read and write access to this file. For more info on how to do this on a Mac go to: https://macpaw.com/how-to/permission-denied-terminal .
 
 ## References
+- van Huijgevoort, B. C., Schön, O., Soudjani, S., & Haesaert, S. (2023). SySCoRe: Synthesis via stochastic coupling relations. Conference on Hybrid Systems: Computation and Control (HSCC).
 - van Huijgevoort, B. C., & Haesaert, S. (2020). Similarity quantification for linear stochastic systems: A coupling compensator approach. Automatica, 144, 110476.
 - Haesaert, S., Soudjani, S. , & Abate, A. (2017). Verification of general Markov decision processes by approximate similarity relations and policy refinement. SIAM Journal on Control and Optimization, 55(4), 2333-2367.
 - Haesaert, S., & Soudjani, S. (2020). Robust dynamic programming for temporal logic control of stochastic systems. IEEE Transactions on Automatic Control, 66(6), 2496-2511.
