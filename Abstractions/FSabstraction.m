@@ -81,6 +81,10 @@ if TensorComputation
         end
 
     end
+    
+    if sys.dim > 2 && strcmp(TensorToolbox,'2d')
+        error("System has more than 2 dimensions. Specify which tensor toolbox to use. (TensorToolbox = {2d, tensorlab, tensortoolbox})");
+    end
 
     [sysAbs] = GridSpace_nonlin_tensor(sys, uhat,l, tol, TensorToolbox);
 end
