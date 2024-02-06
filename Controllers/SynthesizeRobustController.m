@@ -102,9 +102,14 @@ end
 N = 500; %maximum number of iterations performed.  
 uhat = sysAbs.inputs;
 delta = rel.delta;
-outputs2act = rel.NonDetLabels;
 nS = length(DFA.S);
 nX = length(sysAbs.states);
+
+if ~isempty(rel.NonDetLabels)
+    outputs2act = rel.NonDetLabels;
+else
+    error("The simulation relation does not have non-deterministic labels. Run the NonDeterministicLabelling function to create one.");
+end
 
 % Initialise value function
 % V(i,j) is the probability of reaching F from DFA state i and abstract state
