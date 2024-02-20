@@ -48,14 +48,17 @@ if size(sysAbs.states,1) == 2   % 2D abstract model
             satProb = satProb((0:length(satProb)-1)*nS + DFA.trans(DFA.S0, sysAbs.labels));
         end
     end
-    [X1hat, X2hat] = ndgrid(sysAbs.hx{1}, sysAbs.hx{2});
+    X1hat = sysAbs.hx{1};
+    X2hat = sysAbs.hx{2};
         if StateShift
             X1hat = X1hat + xss(1);
             X2hat = X2hat + xss(2);
         end
     for i = 1:size(satProb,1)
         figure
-        surf(X1hat, X2hat, reshape(satProb(i,:), sysAbs.l(1), sysAbs.l(2)),'EdgeColor','interp')
+        %surf(X1hat, X2hat, reshape(satProb(i,:), sysAbs.l(1), sysAbs.l(2)),'EdgeColor','interp')
+        imagesc(X1hat, X2hat, transpose(reshape(satProb(i,:), sysAbs.l(1), sysAbs.l(2))))
+        set(gca, 'Ydir', 'normal')
         if MOR
             xlabel('x_{r,1}')
             ylabel('x_{r,2}')

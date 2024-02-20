@@ -39,12 +39,16 @@ C = sysLTI.C;
 Ar = sysLTIr.A;
 Cr = sysLTIr.C;
 
+PtotEl = sysLTI.dim*sysLTIr.dim; % total elements in P-matrix
+QtotEl = sysLTIr.dim;
+
 S = solve([A*P+B*Q-P*Ar;Cr-C*P] == [zeros(sysLTI.dim,1);0]);
+S_cell = struct2cell(S);
+S_cell = double(vpa([S_cell],4));
 
-P = double(vpa([   S.P1_1, S.P1_2; S.P2_1, S.P2_2; S.P3_1, S.P3_2; S.P4_1, S.P4_2;
-       S.P5_1, S.P5_2; S.P6_1, S.P6_2; S.P7_1, S.P7_2],4));
+P = transpose(reshape(S_cell(1:PtotEl)',[sysLTIr.dim,sysLTI.dim]));
 
-Q = double(vpa([S.Q1,S.Q2],4));
+Q = reshape(S_cell(PtotEl+1:end),[1,sysLTIr.dim]);
 
 sysLTIr.P = P;
 sysLTIr.Q = Q;

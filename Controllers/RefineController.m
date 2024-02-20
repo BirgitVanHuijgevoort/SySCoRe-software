@@ -5,7 +5,7 @@ classdef RefineController
     % Objects of this class define a controller that yields a certain satisfaction
     % probablity by applying a control policy to a system
     %
-    % Copyright 2022 Birgit van Huijgevoort b.c.v.huijgevoort@tue.nl
+    % Copyright 2024 Birgit van Huijgevoort bhuijgevoort@mpi-sws.org
 
     properties
         Prob % satisfaction probability
@@ -15,7 +15,8 @@ classdef RefineController
         int_f % Interface function \in [0,1,2] ...
         % 0. (default) u=uhat 1. u=uhat+K(x-xhat) 2. u = uhat + Qxr + K(x-Pxr)
         FbMatrix % matrix K for interface = 1 or 2
-        sys % Can be either of class LinModel or NonlinModel (if MOR is 1, this is a reduced-order model)
+        sys % Can be either of class LinModel or NonlinModel (if MOR is 1, this is a reduced-order model, if KKfilter is 1 this is filtered model)
+        sys2  % If both MOR and KKfilter, sys is reduced-order model (MOR) and sys2 is KK filtered model.
 
         DFA % Deterministic finite automaton
         regions % regions labelled with atomic propositions used for the specification (and DFA)
@@ -25,6 +26,10 @@ classdef RefineController
         P % the projection matrix for model-order reduction x = Pxr
         Q % for MOR, Q-matrix in interface function 2
         F % for MOR, this matrix gives the coupling of disturbances wr = w+F*(x-P*xr);
+
+        KKfilter = 0 % \in [0,1], logical value for KK filtering. 0 for no KK filtering, 1 for KK filtering used to obtain the model
+        K % kalmann matrix K of filtered model
+        Cobs % observation matrix in y=Cx (paper Maico)
     end
 
     methods
@@ -49,7 +54,11 @@ classdef RefineController
             %   following:
             %   int_f1 = 1; K1 = zeros(1,2);
             %   Controller = RefineController(satProb,pol,sysAbs,rel,sysLTIr,DFA,{int_f1,int_f}, {K1, K});
-
+            %
+            % when a KK filter is used, use the following syntax: 
+            % Controller =
+            %   RefineController(satProb,policy,sysAbs,simRel,sys,DFA, [],[], 'KKfilter', sysLTI_KF)
+            %   with the last argument the KK filtered model
 
             obj.Prob = satProb;
             obj.pol = policy;
@@ -58,6 +67,7 @@ classdef RefineController
             obj.sys = sys; % Can be either of class LinModel or NonlinModel
             obj.DFA = DFA;
             obj.regions = sys.regions;
+
 
             % Use the (state) dimension of the abstract system if it is
             % given
@@ -81,6 +91,13 @@ classdef RefineController
                         udim = size(obj.sys.B,2);
                         obj.FbMatrix = zeros(udim,obj.dim);
                     end
+                    if nargin > 8
+                        if varargin{3} == 'KKfilter'
+                            obj.KKfilter = 1;
+                            obj.sys2 = varargin{4};
+                        end
+                    end
+
                 end
             else
                 obj.int_f = 0;
@@ -119,10 +136,24 @@ classdef RefineController
             % when model-order reduction is applied (obj.MOR=1), varargin
             % is used to supply the full-order state. In this case
             % varargout is the next state of the full-order model. 
+            %
+            % when also KKfiltering is applied (obj.KKfilter=1),
+            % varargin{1} = full-order state, varargin{2} is state of
+            % filtered abstract model. varargout{1} = next state of
+            % full-order original model, varargout{2} = next state of
+            % filtered model. 
 
             if obj.MOR
                 % (xfull, xfullnext) is full state, (x, xnext) is reduced state
                 xfull = varargin{1};
+            end
+
+            if obj.MOR && obj.KKfilter
+                xbar = varargin{2};
+            end
+
+            if ~obj.MOR && obj.KKfilter
+                xbar = varargin{1};
             end
 
             % Find abstract state and input (xrhat, urhat for MOR)
@@ -146,7 +177,7 @@ classdef RefineController
             end
 
             % Compute next state
-            if obj.MOR
+            if obj.MOR && ~obj.KKfilter
                 % Full-order model
                 ufull = uhat + obj.Q*x + obj.FbMatrix * (xfull - obj.P*x);
                 [xfullnext, wfull] = obj.sys.original.f_stoch(xfull, ufull);
@@ -154,7 +185,39 @@ classdef RefineController
 
                 % Reduced-order model
                 wr = wfull + obj.F*(xfull-obj.P*x);
-                xnext = obj.sys.f_stoch(x, u, wr);
+                xnext = obj.sys.f_stoch(x, u, wr); % xrnext
+            elseif obj.MOR && obj.KKfilter
+                % Full-order model
+                ufull = uhat + obj.Q*x + obj.FbMatrix * (xfull - obj.P*x);
+                [xfullnext, wfull] = obj.sys.original.f_stoch(xfull, ufull);
+                varargout{1} = xfullnext;
+
+                % Reduced-order model
+                wr = wfull + obj.F*(xfull-obj.P*x);
+                xnext = obj.sys.f_stoch(x, u, wr); % xrnext
+
+                % KK-filtered model 
+                ubar = u;
+                Obsnext = obj.Cobs*xfullnext; % y_t = Cx_t in paper Maico
+                vnext = Obsnext-obj.Cobs*obj.sys2.A*xbar-obj.Cobs*obj.sys2.B*ubar; 
+                %%%% ----- Should be replaced by something like:
+                % %%%% ------ xbarnext = obj.sys2.f_stoch(xbar, ubar, vnext); --- %%
+                xbarnext = obj.sys2.A*xbar+obj.sys2.B*ubar+obj.K*vnext;
+
+                varargout{2} = xbarnext;
+            elseif ~obj.MOR && obj.KKfilter
+                warning('Control refinement with only knowledge filtering (and no MOR) has not been verified yet.')
+                xnext = obj.sys.f_stoch(x, u);
+
+                % KK-filtered model 
+                ubar = u;
+                Obsnext = obj.Cobs*xnext; % y_t = Cx_t in paper Maico
+                vnext = Obsnext-obj.Cobs*obj.sys2.A*xbar-obj.Cobs*obj.sys2.B*ubar; 
+                %%%% ----- Should be replaced by something like:
+                % %%%% ------ xbarnext = obj.sys2.f_stoch(xbar, ubar, vnext); --- %%
+                xbarnext = obj.sys2.A*xbar+obj.sys2.B*ubar+obj.K*vnext;
+                xbarnext = obj.sys2.f_stoch(xbar, ubar, vnext); % check if obj.K = obj.sys2.Bw!?!
+                varargout{1} = xbarnext;
             elseif obj.sys.type == 'PWA'
                 xnext = obj.sys.f_stoch(x, u, Pr);
             else
@@ -214,7 +277,7 @@ classdef RefineController
             % corresponding to the concrete state (x,q).
 
             % Find next abstract state by looking at the maximizer in R wrt the value
-            % function
+            % function 
             indexing = 1:length(obj.sysAbs.states);
             if obj.MOR
                 inR = obj.simRel.R{2}.inR(x, obj.sysAbs.states);
@@ -230,7 +293,7 @@ classdef RefineController
             end
             j = indices_valid(index_aux); % Find maximizing index of abstract state
             xhat = obj.sysAbs.states(:, j);
-
+    
             % Get abstract input from policy
             uhat = obj.evalPol(j, q);
         end

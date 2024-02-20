@@ -23,10 +23,10 @@ disp('Start Van der Pol Oscillator benchmark')
 Vanderpol
 
 % Bounds on state space 
-x1l = -4;   % Lowerbound x1
-x1u = 4;   % Upperbound x1
-x2l = -4;   % Lowerbound x2
-x2u = 4;   % Upperbound x2
+x1l = -3;   % Lowerbound x1
+x1u = 3;   % Upperbound x1
+x2l = -3;   % Lowerbound x2
+x2u = 3;   % Upperbound x2
 sysNonLin.X = Polyhedron(combvec([x1l,x1u],[x2l,x2u])');
 % Bounds on input space
 ul = [-1];   % Lowerbound input u

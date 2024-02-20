@@ -14,6 +14,7 @@ tStart = tic;
 disp('Start car park 2D (running example) benchmark')
 
 %% Specify system parameters and regions
+tstart = tic;
 
 % Define system parameters
 A = 0.9*eye(2);
@@ -36,8 +37,8 @@ sysLTI.X = Polyhedron(combvec([-10,10],[-10,10])');
 sysLTI.U = Polyhedron(combvec([-1,1],[-1,1])');
 
 % Specify regions for the specification
-P1 = Polyhedron([4, -4; 4, 0; 10, 0; 10 -4]); % parking region
-P2 = Polyhedron([4, 0; 4, 4; 10, 4; 10 0]);  % avoid region
+P1 = Polyhedron([4, -3.25; 4, 0; 10, 0; 10 -3.25]); % parking region
+P2 = Polyhedron([4, 0; 4, 3.25; 10, 3.25; 10 0]);  % avoid region
 
 % Regions that get specific atomic propositions
 sysLTI.regions = [P1;P2]; 
@@ -58,7 +59,7 @@ t1end = toc(t1start);
 t2start = tic;
 
 % Construct abstract input space uhat
-lu = 3;  % number of abstract inputs in each direction
+lu = 7;  % number of abstract inputs in each direction
 uhat = GridInputSpace(lu,sysLTI.U); 
 
 % Construct finite-state abstraction
@@ -70,8 +71,10 @@ t2end = toc(t2start);
 %% Step 3 Similarity quantification
 t3start = tic;
 
+%[epsilonBounds] = ComputeEpsilonBounds(sysLTI,mu,sigma,sysAbs.beta)
+
 % Choose a value for epsilon
-epsilon = 1.005;
+epsilon = 1.005; % interesting values: 0.142, 1.005, 1.4143
 
 % Quantify similarity
 simRel = QuantifySim(sysLTI, sysAbs, epsilon);
@@ -93,6 +96,9 @@ t5start = tic;
 % Refine abstract controller to a continous-state controller
 Controller = RefineController(satProb,pol,sysAbs,simRel,sysLTI,DFA);
 
+% Plot satisfaction probability
+plotSatProb(satProb, sysAbs, 'initial', DFA);
+
 t5end = toc(t5start);
 %% Step 6 Deployment
 t6start = tic;
@@ -101,7 +107,8 @@ x0 = [-4;-5]; % initial state
 N = 40;     % time horizon
 
 % Simulate controlled system
-xsim = ImplementController(x0,N,Controller);
+xsim = ImplementController(x0,N,Controller, 10);
+plotTrajectories(xsim, [-10, 10; -10, 10], sysLTI);
 
 t6end = toc(t6start);
 %% Show details on computation time and memory usage

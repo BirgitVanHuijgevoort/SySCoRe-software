@@ -40,6 +40,12 @@ classdef LinModel
         P % the projection matrix for model-order reduction x = Pxr
         Q % matrix used for interface function between reduced-order model and full-order model, u = ur + Qxr + K(x-Pxr)
         original % (only for reduced-order models) the full-order model
+
+        KKfilter % either false or true to indicate if this is a KK filtered model or not.
+        InitState % Distribution of the intial state x(0) \sim N(mu0,Sigma0) with mu0 = InitState{1}, Sigma0 = InitState{2}.
+        Xdare % solution to riccati equation found by KK filtering
+        K % kalmann matrix K of filtered model
+        Cobs % observation matrix in y=Cx (paper Maico)
     end
     
     methods

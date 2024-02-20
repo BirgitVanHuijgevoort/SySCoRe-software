@@ -11,13 +11,14 @@ clear
 close all
 
 %% Specify system parameters and regions
+tstart = tic;
 
 % Define system parameters
 A = 0.9;
 B = 0.5;
 C = 1;
 D = 0;
-Bw = sqrt(0.5); % corresponds to w from distr with variance 0.5
+Bw = 1; % corresponds to w from distr with variance Bw^2
 dim = length(A);
 
 % Specify mean and variance of disturbance w(t) 
@@ -40,7 +41,7 @@ uu = [1];     % Upperbound input u
 sysLTI.U = Polyhedron('lb', ul, 'ub', uu);
 
 % Specify regions for the specification
-P1 = [5 6];    % x1-coordinates
+P1 = [4.75 6];    % x1-coordinates
 P1 = Polyhedron('lb', P1(1), 'ub', P1(2));
 
 P2 = [6 10];    % x1-coordinates
@@ -77,7 +78,7 @@ tGridEnd = toc(tGridStart);
 tSimStart = tic;
 
 % specify output deviation epsilon
-epsilon = 0.2;
+epsilon = 0.05;
 
 % Quantify similarity 
 % interface function u = uhat
@@ -102,10 +103,23 @@ plotSatProb(satProb, sysAbs, 'initial', DFA);
 % Refine abstract controller to a continous-state controller
 Controller = RefineController(satProb,pol,sysAbs,rel,sysLTI,DFA);
 
+%% show runtime and memory usage
+tend = toc(tstart);
+
+% show simulation time 
+disp(['Finished running 1D car park case study in ', mat2str(tend,3), ' seconds'])
+
+% Display total memory usage
+d = whos();
+Mem = sum([d.bytes]);
+Mem = Mem*1e-6; % memory usage in Mb
+
+disp(['Memory usage: ', mat2str(Mem), ' Mb'])
+
 %% Step 6 Implementation
-x0 = -2;
-N = 40;     % time horizon
+%x0 = -2;
+%N = 40;     % time horizon
 
 % Simulate controlled system
-xsim = ImplementController(x0,N,Controller);
-plotTrajectories(xsim, [x1l, x1u], sysLTI);
+%xsim = ImplementController(x0,N,Controller);
+%plotTrajectories(xsim, [x1l, x1u], sysLTI);

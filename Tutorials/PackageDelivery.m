@@ -153,7 +153,7 @@ N = 60;
 [xsim, qsim] = ImplementController(x0, N, Controller);
 
 % Show results
-%plotTrajectories(xsim, [x1l x1u; x2l x2u], sysLTI, 'DFAinfo', qsim);
+plotTrajectories(xsim, [x1l x1u; x2l x2u], sysLTI, 'DFAinfo', qsim);
 
 t6end = toc(t6start);
 %% Show details on computation time and memory usage

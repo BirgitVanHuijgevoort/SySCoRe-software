@@ -25,6 +25,8 @@ Tested on macOS, with MATLAB R2022a including all standard MATLAB toolboxes.
 - CarPark2D_interfaceOption
 - PackageDelivery
 - BAS
+- BAS_KF
+- BAS_KF_4D
 - VanderPol
 
 ## 3. Usage
@@ -44,6 +46,9 @@ Compute a finite state abstraction using
 Compute a reduced-order model using
 - ModelReduction
 
+Compute a KK filtered model (reduced disturbance space) using
+- KKfilter
+
 Compute a piecewise-affine approximation using
 - PWAapproximation
 
@@ -52,6 +57,7 @@ Compute a piecewise-affine approximation using
 
 ### Synthesize a robust controller
 - RefineController
+- SynthesizeRobustController
 
 ### Simulate the resulting closed loop system
 - ImplementController
@@ -73,4 +79,5 @@ There are multiple reasons this error occurs:
 - Haesaert, S., Soudjani, S. , & Abate, A. (2017). Verification of general Markov decision processes by approximate similarity relations and policy refinement. SIAM Journal on Control and Optimization, 55(4), 2333-2367.
 - Haesaert, S., & Soudjani, S. (2020). Robust dynamic programming for temporal logic control of stochastic systems. IEEE Transactions on Automatic Control, 66(6), 2496-2511.
 - van Huijgevoort, B.C. & Haesaert, S. (2022). Temporal logic control of nonlinear stochastic systems using a piecewise-affine abstraction. IEEE Control Systems Letters, 1039-1044.
+- Engelaar, M.H.W., Romao, L., Gao, Y., Lazar, M., Abate, A., & Haesaert, S. (2023) Abstracting linear stochastic systems via knowledge filtering. IEEE Conference on Decision and Control (CDC). IEEE, 3049-3054.
 

@@ -35,7 +35,7 @@ function h = plotTrajectories(xsim, xlimits, sysLTI, varargin)
 DFAinfo = false;
 StateShift = false;
 for i = 1:length(varargin)
-    % try to find 'initial'
+    % try to find 'DFAinfor'
     if strcmp(varargin{i}, 'DFAinfo')
         DFAinfo = true;
         qsim = varargin{i+1};

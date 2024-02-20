@@ -33,13 +33,17 @@ function [XSIM, QSIM] = ImplementController(x0, N, Controller, nTraj, varargin)
 % -------
 % 'MOR' - let the program know that moder-order reduction has been used.
 % 'MOR' should be followed by the reduced-order system and the kernel.
+% 'KKfilter' - let the program know that KK filtering has been used. 
+% ''KKfilter' should be followed by the filtered model. 
 %
 % Copyright 2022 Birgit van Huijgevoort b.c.v.huijgevoort@tue.nl
+% Update january 2024, added KKfilter capabilities
 
 %% Initialization
 disp('<---- Start deployment');
 
 MOR = false;
+KKfilter = false;
 % Check if MOR is given as an input
 for i = 1:length(varargin)
     % try to find 'MOR'
@@ -52,7 +56,16 @@ for i = 1:length(varargin)
             Controller.Q = sysLTIr.Q;
             Controller.F = varargin{i+2};
         end
-        break
+        % try to find 'KKfilter'
+    elseif strcmp(varargin{i}, 'KKfilter')
+        KKfilter = true;
+        sysLTI_KF = varargin{i+1};
+        mu0 = sysLTI_KF.InitState{1};
+        Sigma0 = sysLTI_KF.InitState{2};
+        Xdare = sysLTI_KF.Xdare;
+        Controller.KKfilter = true;
+        Controller.Cobs = sysLTI_KF.Cobs;
+        Controller.K = sysLTI_KF.K;
     end
 end
 
@@ -65,12 +78,35 @@ end
 XSIM = cell(nTraj, 1);
 QSIM = cell(nTraj, 1);
 for iTraj = 1:nTraj
-    if MOR
+    if MOR && ~KKfilter
         xsim = x0; % Initial state
         % Compute reduced order initial state
         Dr = Controller.simRel.R{1}.R; % weigthing matrix for sim rel between original and reduced-order model
         xr0 = (inv(sysLTIr.P'*Dr*sysLTIr.P))*sysLTIr.P'*Dr*x0;  % Compute suitable value for xr0 (least square optimal solution of min ||x0-P*xr0||_Dr \leq \epsilon)
         xrsim = xr0; % Initial state (reduced)
+    elseif MOR && KKfilter
+        xsim = x0;
+        % Compute state of filtered model
+        R = inv(inv(Xdare)-inv(Sigma0));
+        L = Sigma0*inv(Sigma0+R);
+        wtilde = mvnrnd(zeros(size(R,1),1),R);
+        mu0_bar = mu0+L*(x0+wtilde-mu0);
+        x0bar = mu0_bar+sysLTI_KF.K*(sysLTI_KF.Cobs*x0-sysLTI_KF.Cobs*mu0_bar); % state of filtered model
+        xbarsim = x0bar;
+
+        % Compute reduced order initial state
+        Dr = Controller.simRel.R{1}.R; % weigthing matrix for sim rel between original and reduced-order model
+        xr0 = (inv(sysLTIr.P'*Dr*sysLTIr.P))*sysLTIr.P'*Dr*x0bar;  % Compute suitable value for xr0 (least square optimal solution of min ||x0-P*xr0||_Dr \leq \epsilon)
+        xrsim = xr0; % Initial state (reduced)
+    elseif ~MOR && KKfilter
+        xsim = x0;
+        % Compute state of filtered model
+        R = inv(inv(Xdare)-inv(Sigma0));
+        L = Sigma0*inv(Sigma0+R);
+        wtilde = mvnrnd(zeros(size(R,1),1),R);
+        mu0_bar = mu0+L*(x0+wtilde-mu0);
+        x0bar = mu0_bar+sysLTI_KF.K*(sysLTI_KF.Cobs*x0-sysLTI_KF.Cobs*mu0_bar); % state of filtered model
+        xbarsim = x0bar;
     else
         xsim = x0; % Initial state
     end
@@ -81,9 +117,16 @@ for iTraj = 1:nTraj
     % Start simulating
     for i = 1:N
         % Compute next state
-        if MOR
+        if MOR && ~KKfilter
             [xrnext, qnext, u, xnext] = Controller.EvolveSys(xrsim(:, end), qsim(end), xsim(:, end));
             xrsim = [xrsim, xrnext];
+        elseif MOR && KKfilter
+            [xrnext, qnext, u, xnext, xbarnext] = Controller.EvolveSys(xrsim(:, end), qsim(end), xsim(:, end), xbarsim(:,end));
+            xrsim = [xrsim, xrnext];
+            xbarsim = [xbarsim, xbarnext];
+        elseif ~MOR && KKfilter
+             warning('Control refinement with only knowledge filtering (and no MOR) has not been verified yet.')
+            [xnext, qnext, u, xbarnext] = Controller.EvolveSys(xbarsim(:,end), qsim(end), xsim(:, end));
         else
             [xnext, qnext, u] = Controller.EvolveSys(xsim(:, end), qsim(end));
         end

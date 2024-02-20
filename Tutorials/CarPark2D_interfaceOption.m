@@ -104,7 +104,7 @@ plotSatProb(satProb, sysAbs, 'initial', DFA);
 Controller = RefineController(satProb,pol,sysAbs,rel,sysLTI,DFA,int_f,K);
 
 %% Step 6 Implementation
-x0 = [-4;-5];
+x0 = [4;8];
 N = 40;
 
 % Simulate controlled system

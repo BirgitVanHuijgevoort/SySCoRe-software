@@ -11,7 +11,7 @@ tau = 0.1; % sampling time
 theta = 1;
 
 C =  eye(2);
-Bw = 0.2*eye(2);
+Bw = sqrt(0.2)*eye(2);
 mu = zeros(2,1);
 sigma = eye(2);
 dim = size(Bw, 2);

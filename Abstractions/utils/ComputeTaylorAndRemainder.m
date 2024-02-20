@@ -1,4 +1,4 @@
-function [T,R,NL] = ComputeTaylorAndRemainder2(sysNonLin)
+function [T,R,NL] = ComputeTaylorAndRemainder(sysNonLin)
 % function that compute the second order Taylor expansion and corresponding
 % remainder of the nonlinear system. 
 % Note that this function requires the symbolic toolbox!
@@ -22,10 +22,14 @@ NL = ones(nx,2);
 
 % Check if the function is already linear (wrt x)
 for i = 1:nx
-    % Compute polynomial degree of function i
+    % Compute polynomial degree of function i (if possible)
     for j = 1:nx
         % with respect to variable x(j)
-        degree = polynomialDegree(sysNonLin.fsym(i),x(j));
+        try 
+            degree = polynomialDegree(sysNonLin.fsym(i),x(j));
+        catch
+            degree = 10; % any number > 1 leads to nonlinear. 
+        end
         PD(i,j) = degree;
     end    
     NL(i,1) = 1-all(PD(i,:)<nx);
@@ -38,7 +42,11 @@ for i = 1:nx
     % Compute polynomial degree of function i
     for j = 1:nu
         % with respect to variable u(j)
-        degree = polynomialDegree(sysNonLin.fsym(i),u(j));
+        try 
+            degree = polynomialDegree(sysNonLin.fsym(i),u(j));
+        catch
+            degree = 10;
+        end
         PD(i,j) = degree;
     end    
     NL(i,2) = 1-all(PD(i,:)<2);

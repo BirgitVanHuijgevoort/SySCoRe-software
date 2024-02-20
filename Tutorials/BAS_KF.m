@@ -1,16 +1,20 @@
 %%% Building Automation System (BAS) case study
-% Including model order reduction
+% Including model order reduction AND KK filtering
 % 7D model reduced to a 2D model using model-order reduction
 % author: Birgit van Huijgevoort
+% Modified: Maico Engelaar
 %
-% Expected runtime = approx 120 seconds
+% Expected runtime = approx 75 seconds
 %
 % sysLTI -> original model
+% sysLTI_KF -> model with reduced order disturbance
 % sysLTIr -> reduced order model
 
 clear;close all;
+seed = 4;
+rng(seed);
 
-run Install.m
+% run Install.m
 
 tStart = tic;
 disp('Start building automation system benchmark')
@@ -31,6 +35,12 @@ x2l = 10;   % Lowerbound x2
 x2u = 20;   % Upperbound x2
 LowerBounds = [x1l;x2l;zeros(5,1)];
 UpperBounds = [x1u;x2u;30*ones(5,1)];
+
+% Define Initial distribution of x(0)
+mu0 = zeros(sysLTI.dim,1);
+Sigma0 = diag([0.1,0.1,3,3,3,3,4]);
+InitState = {mu0,Sigma0};
+sysLTI.InitState = InitState;
 
 % Transform model, such that w comes from Gaussian distribution with mean 0
 % and variance identity
@@ -87,22 +97,37 @@ formula = '(p1 & X p1 & X X p1 & X X X p1 & X X X X p1 & X X X X X p1)';
 [DFA] = TranslateSpec(formula, sysLTI.AP);
 
 t1end = toc(t1start);
-%% Step 2b Model order reduction
-t2start = tic;
 
+%% Step 2a Reduce the disturbance on the original model            
+t2start = tic;
+% Define tuning variables (Make sure that NC=H)
+% with H = sysLTI.C = [1 0 0 0 0 0 0]
+Cobs = [1 0 0 0 0 0 0; 0 1 0 0 0 0 0]; %N = [1 0];
+
+sysLTI_KF = KKfilter(sysLTI,Cobs);
+
+% Transform model, such that w comes from Gaussian distribution with mean 0
+% and variance identity
+[sysLTI_KF, atest] = NormalizeDisturbance(sysLTI_KF);
+
+if atest ~=0
+    fprintf('Abort program\n');
+end
+
+%% Step 2b Model order reduction
 f = 0.098;  % tuning parameter for feedback-matrix F
 dimr = 2; % desired dimension of reduced-order model
 % Construct reduced-order model
-[sysLTIr, ~] = ModelReduction(sysLTI,dimr,f);
+[sysLTIr, ~] = ModelReduction(sysLTI_KF,dimr,f);
 
 % Compute projection matrix P and Q for interface function
 % u = ur + Qxr + K(x-Pxr) and add them to sysLTIr
-sysLTIr = ComputeProjection(sysLTI,sysLTIr);
+sysLTIr = ComputeProjection(sysLTI_KF,sysLTIr);
 
 % Define bounded state space of reduced-order model
 sysLTIr.X = Polyhedron(combvec([x1l,x1u],[x2l,x2u])');
 % Define bounded input space of reduced-order model
-sysLTIr.U = sysLTI.U;
+sysLTIr.U = sysLTI_KF.U;
 
 % Regions that get specific atomic propositions
 sysLTIr.regions = [P1];
@@ -128,12 +153,12 @@ t2end = toc(t2start);
 %% Step 3 Similarity quantification
 t3start = tic;
 
-% set values of epsilon
+% set values of epsilon 
 epsilon_1 = 0.2413; % output deviation for MOR simulation relation
 epsilon_2 = 0.1087; % output deviation for gridding simulation relation
 
 % Compute MOR simulation relation
-[rel_1, K, kernel] = QuantifySim(sysLTI, sysLTIr, epsilon_1, 'MOR', sysAbs);
+[rel_1, K, kernel] = QuantifySim(sysLTI_KF, sysLTIr, epsilon_1, 'MOR', sysAbs);
 
 % Compute gridding simulation relation
 [rel_2] = QuantifySim(sysLTIr, sysAbs, epsilon_2);
@@ -154,24 +179,21 @@ t4end = toc(t4start);
 t5start = tic;
 
 % Refine abstract controller to a continous-state controller
-Controller = RefineController(satProb,pol,sysAbs,rel,sysLTIr,DFA,int_f,K);
+Controller = RefineController(satProb,pol,sysAbs,rel,sysLTIr,DFA,int_f,K, 'KKfilter',sysLTI_KF);
 
 t5end = toc(t5start);
 %% Step 6 Deployment
 t6start = tic;
 
 % Supply an initial state for the LTI system (x_LTI = x_affine - xss)
-[i,j] = max(satProb(DFA.S0,:));
-xr0 = sysAbs.states(:,j);
-% alternative: xr0 = sysLTIr.X.chebyCenter.x
-x0 = sysLTIr.P*xr0;
+x0 = mvnrnd(sysLTI.InitState{1}, sysLTI.InitState{2}, 1)';
 
 % Simulate controlled system Ns times
-Ns = 6;
-xsim = ImplementController(x0, N, Controller, Ns, 'MOR', sysLTIr, kernel);
+Ns = 1;
+xsim = ImplementController(x0, N, Controller, Ns, 'MOR', sysLTIr, kernel, 'KKfilter', sysLTI_KF);
 
 % Plot resulting trajectories
-%plotTrajectories(xsim, [LowerBounds UpperBounds], sysLTI, 'shift', xss);
+%plotTrajectories(xsim, [LowerBounds UpperBounds], sysLTI_KF, 'shift', xss);
 
 t6end = toc(t6start);
 %% Show details on computation time and memory usage
@@ -198,24 +220,10 @@ disp(['Memory usage: ', mat2str(Mem), ' Mb'])
 %% Show satisfaction probability plot 
 
 % Plot satisfaction probability
-%plotSatProb(satProb, sysAbs, 'initial', DFA, 'shift', xss, 'MOR');
+plotSatProb(satProb, sysAbs, 'initial', DFA, 'shift', xss, 'MOR');
 %%% This plot shows that satifaction probability of the reduced-order model 
 % compensated with a steady shift of [xss(1);xss(2)]
 % to translate the state in this Figure [xr1;xr2] to the corresponding state of the
 % affine system, use x0 = sysLTIr.P*[xr1-xss(1);xr2-xss(2)]+xss
 
 disp('Finished building automation system benchmark')
-
-% Plot satisfaction probability - faster!
-nS = length(DFA.S);
-if ~(size(satProb,1) == 1) % if this is not the case then convert
-    % Determine correct q_0 for abstract states
-    satProb = satProb((0:length(satProb)-1)*nS + DFA.trans(DFA.S0, sysAbs.labels));
-end
-X1hat = sysAbs.hx{1};
-X2hat = sysAbs.hx{2};
-X1hat = X1hat + xss(1);
-X2hat = X2hat + xss(2);
-figure;
-imagesc(X1hat,X2hat,reshape(satProb,sysAbs.l(1),sysAbs.l(2))')
-set(gca, 'YDir','normal')

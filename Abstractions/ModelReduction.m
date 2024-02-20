@@ -32,9 +32,12 @@ disp('<---- Start model-order reduction')
 [~,~,F]=dare(sysLTI.A,sysLTI.B,sysLTI.C'*sysLTI.C,f);
 
 % find reduced order model
-sysclosed=ss(sysLTI.A-sysLTI.B*F,[sysLTI.B,sysLTI.Bw],sysLTI.C,sysLTI.D,-1); %(ignore disturbance)
+sysclosed=ss(sysLTI.A-sysLTI.B*F,[sysLTI.B sysLTI.Bw],sysLTI.C,[sysLTI.D zeros(size(sysLTI.D,1),size(sysLTI.B,2)+size(sysLTI.Bw,2)-size(sysLTI.D,2))],-1); %(ignore disturbance)
 sysred=balred(sysclosed,dimr);
 sysred=ss(tf(sysred));
+
+%%% ----- careful, balred is replace by  R = reducespec(sys,method) from
+%%% version 2023b onwards ----
 
 %% Obtain parameters of reduced order model
 Ar = sysred.A;

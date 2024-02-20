@@ -1,4 +1,4 @@
-function [epsilonBounds] = ComputeEpsilonBounds(sysLTI,sysLTIr,mu,sigma,uuf,Z,P)
+function [epsilonBounds] = ComputeEpsilonBoundsMOR(sysLTI,sysLTIr,mu,sigma,uuf,Z)
 % Written by: Birgit van Huijgevoort
 
 % inputs:
